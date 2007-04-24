@@ -48,7 +48,7 @@ $info->close();
 
 =head1 AUTHOR
 
-Edward Allen, edwardallenthethird@hotmail.com
+Edward Allen, edwardallenthethird@gmail.com
 
 =head1 DESCRIPTION
 
@@ -64,7 +64,7 @@ use Locale::Country;
 use File::Spec;
 use Encode;
 use utf8;
-our $VERSION     = 0.19;
+our $VERSION     = 0.20;
 
 use vars qw($AUTOLOAD);
 
