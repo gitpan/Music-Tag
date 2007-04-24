@@ -1,0 +1,20 @@
+bin/autotag
+bin/musictag
+bin/musicinfo
+bin/musicsort
+bin/quicktag
+bin/safetag
+lib/Music/Tag.pm
+lib/Music/Tag/Amazon.pm
+lib/Music/Tag/File.pm
+lib/Music/Tag/FLAC.pm
+lib/Music/Tag/Lyrics.pm
+lib/Music/Tag/M4A.pm
+lib/Music/Tag/MP3.pm
+lib/Music/Tag/MusicBrainz.pm
+lib/Music/Tag/OGG.pm
+lib/Music/Tag/Option.pm
+Makefile.PL
+MANIFEST
+README
+META.yml                                 Module meta-data (added by MakeMaker)

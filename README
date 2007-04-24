@@ -1,0 +1,68 @@
+Music-Tag version 0.19
+============================
+
+Extendable module for working with Music Tags. Is powered by various
+plugins that collect data about a song based on whatever information
+has already been discovered.  
+
+This base package comes with the following plugins:
+
+MP3 - Info from MP3 Header. Uses MP3::Info 
+M4A - Info from M4A or M4P Header. Uses Audio::M4P at the moment.
+FLAC - Info from FLAC Header. Uses Audio::FLAC::Header
+OGG - Info from OGG Header. Uses Ogg::Vorbis::Header::PurePerl
+File - Info based on filename
+MusicBrainz - Info from MusicBrainz site. Uses WebService::MusicBrainz
+Amazon - Info from Amazon site. Uses Net::Amazon
+Lyrics - Quick and dirty lyric search. 
+
+Other modules are easy to write, and in fact I have writen a few.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+Audio::FLAC::Header
+Cache::FileCache
+Data::UUID
+Encode
+File::Spec
+HTML::Entities
+Image::Magick
+LWP
+MP3::Tag
+MP4::Info
+Net::Amazon
+Ogg::Vorbis::Header::PurePerl
+URI::Escape
+URI::WithBase
+WebService::MusicBrainz
+
+I strongly recommend the following to improve web searches:
+
+Lingua::EN::Inflect
+Lingua::Stem
+Text::LevenshteinXS
+Text::Unaccent 
+
+The following just makes things pretty:
+
+Term::ANSIColor
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2007 Edward J. Allen III
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.7 or,
+at your option, any later version of Perl 5 you may have available.
+
