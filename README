@@ -1,4 +1,4 @@
-Music-Tag version 0.19
+Music-Tag version 0.23
 ============================
 
 Extendable module for working with Music Tags. Is powered by various
@@ -46,6 +46,10 @@ Ogg::Vorbis::Header::PurePerl
 URI::Escape
 URI::WithBase
 WebService::MusicBrainz
+Locale::Country
+
+The version info in the Makefile is based on what I use.  You can get 
+away with older versions in many cases.
 
 I strongly recommend the following to improve web searches:
 
@@ -61,7 +65,7 @@ Term::ANSIColor
 COPYRIGHT AND LICENCE
 
 Copyright (C) 2007 Edward J. Allen III
-edwardallenthethird@gmail.com
+ealleniii _at_ cpan _dot_ org
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.7 or,

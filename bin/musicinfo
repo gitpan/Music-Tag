@@ -6,10 +6,11 @@ use File::Spec;
 use Term::Cap;
 use Term::ANSIColor;
 use Data::Dumper;
+use Config::Options;
 
 my $terminal = Term::Cap->Tgetent( { OSPEED => 9600 } );
 our $clear_screen = $terminal->Tputs('cl');
-our $options = MTOptions->new();
+our $options = Config::Options->new();
 our $BASENAME = "musictag";
 if ($^X =~ /\/*([^\/]*)$/) {
    $BASENAME = $1;
@@ -29,6 +30,7 @@ $options->options(
    ignore_apic    => 1,
    optionfile     => [$ENV{HOME}.  "/.musictag/default.conf", $ENV{HOME}.  "/.musictag/$BASENAME.conf"],
    sort_regex	  => '[^A-Za-z0-9 _\-]',
+   getinfo		  => "",
    quicktag       => {
       plugins       => ['Option', 'Getpuid', 'File', 'MusicBrainz', 'Amazon:locale=us', 'Lyrics'],
       keepmtime     => 1,
@@ -56,6 +58,8 @@ $options->options(
 
 my $cloptions = {plugins => [], outputplugins => [], inputplugins => []};
 our $clopts = [
+			  [ "stdin"			   => \$cloptions->{stdin},
+			  "Take filenames from standard input" ],
                 [ "plugin=s@"      => $cloptions->{plugins}, 
 		  "Specifiy a plugin to add (input and outpout). ".
 		  "Plugin options can be expressed in the form option=value"
@@ -84,21 +88,7 @@ our $clopts = [
                 [ "trust_totaltracks" => \$cloptions->{trust_totaltracks},
                   "Trust total number of tracks"
                 ],
-                [ "asin=s"          => \$cloptions->{asin},
-		  "Set Asin" 
-		],
-                [ "artist=s"        => \$cloptions->{artist},         
-		  "Set artist" 
-		],
-                [ "album=s"         => \$cloptions->{album},           
-		  "Set album"
-		],
-                [ "title=s"         => \$cloptions->{title},           
-		  "Set title"
-		],
-                [ "track=i"         => \$cloptions->{track},           
-		  "Set track"
-		],
+
                 [ "striptags"       => \$cloptions->{strip_tag},      
 		  "Remove tag from file before writing new tag"
 		],
@@ -128,6 +118,9 @@ our $clopts = [
                 [ "printinfo"       => \$cloptions->{printinfo},       
 		  "Dump raw tag info"
 		],
+                [ "getinfo=s"       => \$cloptions->{getinfo},       
+		  "Get a specific tag info "
+		],
                 [ "move"       => \$cloptions->{move},       
 		  "move file to sorted location"
 		],
@@ -152,14 +145,45 @@ our $clopts = [
                 [ "help"            => \&help,                      
 		  "Your lookin' at it."
 		],
+				#[ "asin=s"          => \$cloptions->{asin}, "Set Asin" ],
+				#[ "artist=s"        => \$cloptions->{artist},         "Set artist" ],
+				#[ "album=s"         => \$cloptions->{album},           "Set album" ],
+				#[ "title=s"         => \$cloptions->{title},           "Set title" ],
+				[ "track=i"         => \$cloptions->{track},           "Set track" ],
+				[ "disc=i"         => \$cloptions->{disc},           "Set disc" ],
+				[ "totaltracks=i"         => \$cloptions->{totaltracks},           "Set totaltracks" ],
+				[ "totaldiscs=i"         => \$cloptions->{totaldiscs},           "Set totaldiscs" ],
+				[ "secs=i"         => \$cloptions->{secs},           "Set track duration in seconds" ],
+				[ "duration=i"         => \$cloptions->{duration},           "Set track duration in microseconds" ],
               ];
 
+			  
+my %seenhash =  map { $_->[0] => $_->[1] } @{$clopts};
+$seenhash{'tracknum'} = 1;
+$seenhash{'discnum'} = 1;
+$seenhash{'bytes'} = 1;
+$seenhash{'frames'} = 1;
+$seenhash{'frequency'} = 1;
+$seenhash{'bitrate'} = 1;
+
+foreach (@Music::Tag::DATAMETHODS) {
+	next if $seenhash{$_.'=i'};
+	push @{$clopts}, [ $_.'=s' => \$cloptions->{$_}, "Set $_" ];
+}
+
 Getopt::Long::GetOptions( map { $_->[0] => $_->[1] } @{$clopts} );
+
+
 if (exists $options->{optionfile}) {
    $options->fromfile_perl($options->{optionfile});
 }
 if (exists $cloptions->{optionfile}) {
    $options->fromfile_perl($cloptions->{optionfile});
+}
+
+if ($options->{getinfo}) {
+	$options->{verbose} = 0;
+	$options->{quiet} = 1;
 }
 
 my ($v, $p, $f) = File::Spec->splitpath($0);
@@ -172,7 +196,17 @@ $options->deepmerge($cloptions);
 @{ $options->{inputplugins} }  = split( /,/, join( ',', @{ $options->{inputplugins} } ) );
 @{ $options->{outputplugins} } = split( /,/, join( ',', @{ $options->{outputplugins} } ) );
 
-foreach (@ARGV) {
+my @FILES = @ARGV;
+
+if ($cloptions->{stdin}) {
+	while (<STDIN>) {
+		chomp;
+		push @FILES, $_;
+	}
+}
+
+
+foreach (@FILES) {
    s/[^A-Za-z0-9]+$//g;
    if ( -d $_ ) {
       fix_dir($_);
@@ -222,7 +256,7 @@ sub plugin_opts {
     my $pl = shift;
     my ($plugin, $popts) = split(":", $pl);
     my @opts = split( /[;]/, $popts );
-    my $ret = MTOptions->new();
+    my $ret = Config::Options->new();
     foreach (@opts) {
         my ( $k, $v ) = split( "=", $plugin );
         $ret->{$k} = $v;
@@ -289,7 +323,9 @@ sub fix_file {
    }
 
    if ( $options->{strip_tag} ) {
-      $_->strip_tag();
+      foreach (@outputplugins) {
+		  $_->strip_tag();
+	  }
    }
 
    if ( $info->changed or $options->{forcechange} ) {
@@ -307,6 +343,16 @@ sub fix_file {
    if ( $options->{printinfo} ) {
       print_info($info);
    }
+
+   if ( $options->{getinfo} ) {
+	  foreach (@Music::Tag::DATAMETHODS) {
+		  if (lc($_) eq lc($options->{getinfo})) {
+			  my $method = lc($_);
+			  print $info->$method, "\n";
+		  }
+	  }
+   }
+
    $info = undef;
    print header("finished");
 }
@@ -366,6 +412,7 @@ sub print_info {
       delete $info->{_plugins};
       my $d = Data::Dumper->new( [$info] );
       $d->Maxdepth(2)->Terse(1)->Sortkeys(1);
+	  binmode (STDOUT, ":utf8");
       print $d->Dump();
    }
 }

@@ -1,5 +1,6 @@
 package Music::Tag::Amazon;
-our $VERSION=0.19;
+our $VERSION = 0.20;
+use Data::Dumper;
 
 # Copyright (c) 2007 Edward Allen III. All rights reserved.
 #
@@ -97,19 +98,19 @@ use LWP::UserAgent;
 our @ISA = qw(Music::Tag::Generic);
 
 sub default_options {
-   {
-   	quiet		=> 0,
-	verbose		=> 0,
-	trust_title   	=> 0,
-	trust_track   	=> 0,
-	coveroverwrite  => 0,
-        token        	=> "0V2FQAQSWYH6XMJB8G82",
-	min_album_points	=> 10,
-	ignore_asin     => 0,
-	max_pages	=> 10,
-	locale		=> "us",
-   };
+    {  quiet            => 0,
+       verbose          => 0,
+       trust_title      => 0,
+       trust_track      => 0,
+       coveroverwrite   => 0,
+       token            => "0V2FQAQSWYH6XMJB8G82",
+       min_album_points => 10,
+       ignore_asin      => 0,
+       max_pages        => 10,
+       locale           => "us",
+    };
 }
+
 =pod
 =head1 OPTIONS
 
@@ -168,138 +169,166 @@ Updates current tag object with information from Amazon database.
 =cut
 
 sub get_tag {
-   my $self = shift;
+    my $self = shift;
 
-   my $filename = $self->info->filename;
+    my $filename = $self->info->filename;
 
-   unless ( $self->info->artist ) {
-      $self->status("Amazon lookup requires ARTIST already set!");
-   }
+    unless ( $self->info->artist ) {
+        $self->status("Amazon lookup requires ARTIST already set!");
+    }
 
-   my $p = $self->_album_lookup( $self->info, $self->options );
-   unless ( ( defined $p ) && ( $p->{album} ) ) {
-      $self->status("Amazon lookup failed");
-      return $self->info;
-   }
-   $self->status("Amazon lookup successfull");
-   my $totaltracks = scalar @{ $p->{tracks} };
-   unless ( $totaltracks == $totaltracks ) {
-      $self->info->totaltracks($totaltracks);
-      $self->tagchange("TOTALTRACKS");
-   }
-   my $tracknum = 0;
-   if (($self->options->{trust_title}) or ( not $self->info->track )) {
-      my $n = 0;
-      foreach my $tr ( @{ $p->{tracks} } ) {
-         $n++;
-         if ( $self->simple_compare( $self->info->title, $tr, ".90" ) ) {
-	    unless ($self->info->track eq $n) {
-               $self->info->track($n);
-               $self->tagchange("TRACK");
-	    }
-	    $tracknum = $n;
-            last;
-         }
-      }
-   }
-   elsif ($self->options->{trust_track} && $self->info->track()) {
-      $tracknum = $self->info->track();
-   }
-   if (($tracknum) and not (lc($p->{tracks}->[$tracknum - 1]) eq lc($self->info->title))) {
-      $self->info->title($p->{tracks}->[$tracknum - 1]);
-      $self->tagchange("TITLE");
-   }
-   unless ( ( $p->{album} ) && ( lc( $p->{album} ) eq lc( $self->info->album ) ) ) {
-      $self->info->album( $p->{album} );
-      $self->tagchange("ALBUM");
-   }
-   my $releasedate = $self->_amazon_to_sql( $p->ReleaseDate );
-   unless ( ($releasedate) && ( $releasedate eq $self->info->releasedate ) ) {
-      $self->info->releasedate($releasedate);
-      $self->tagchange("RELEASEDATE");
-   }
-   unless ( ( $p->{label} ) && ( lc( $p->{label} ) eq lc( $self->info->label ) ) ) {
-      $self->info->label( $p->{label} );
-      $self->tagchange("LABEL");
-   }
-  my $asin = $p->{Asin} || $p->{ASIN};
-   unless ( ( $asin ) && ( lc( $asin ) eq lc( $self->info->asin ) ) ) {
-      $self->info->asin( $asin );
-      $self->tagchange("ASIN");
-   }
-   if (    ( $p->{ImageUrlLarge} )
-        && ( ( not $self->info->picture ) || ( $self->options('coveroverwrite') ) ) ) {
-      $self->status("DOWNLOADING COVER ART");
-      $self->info->picture( $self->_cover_art($p) );
-   }
-   return $self;
+    my $p = $self->_album_lookup( $self->info, $self->options );
+    unless ( ( defined $p ) && ( $p->{album} ) ) {
+        $self->status("Amazon lookup failed");
+        return $self->info;
+    }
+    $self->status("Amazon lookup successfull");
+
+    my $totaldiscs = 0;
+    my $discs      = $self->_tracks_by_discs($p);
+
+    if ((defined $discs) && ($discs->[0])) {
+        my $tracknum = 0;
+        my $discnum = $self->info->disc || 1;
+        if ( ( $self->options->{trust_title} ) or ( not $self->info->track ) ) {
+            foreach my $tr ( values %{ $self->_tracks_by_name($p) } ) {
+                if ( $self->simple_compare( $self->info->title, $tr->{content}, ".90" ) ) {
+                    unless ( $self->info->track eq $tr->{Number} ) {
+                        $self->info->track( $tr->{Number} );
+                        $self->tagchange("TRACK");
+                    }
+                    $tracknum = $tr->{Number};
+                    unless ( $self->info->disc eq $tr->{Disc} ) {
+                        $self->info->disc( $tr->{Disc} );
+                        $self->tagchange("DISC");
+                    }
+                    $discnum = $tr->{Disc};
+                    last;
+                }
+            }
+        }
+        elsif ( $self->options->{trust_track} && $self->info->track() ) {
+            $tracknum = $self->info->track();
+        }
+        if ( $tracknum && $discnum ) {
+            if (    ( exists $discs->[ $discnum - 1 ] )
+                 && ( exists $discs->[ $discnum - 1 ]->[ $tracknum - 1 ] ) ) {
+                $self->info->title( $discs->[ $discnum - 1 ]->[ $tracknum - 1 ] );
+                $self->tagchange("TITLE");
+            }
+        }
+            my $totaltracks = scalar @{ $discs->[ $discnum - 1 ] };
+            unless ( ($totaltracks) && ( $totaltracks == $self->info->totaltracks() ) ) {
+                $self->info->totaltracks($totaltracks);
+                $self->tagchange("TOTALTRACKS");
+            }
+            my $totaldiscs = scalar @{$discs};
+            unless ( ($totaldiscs) && ( $totaldiscs == $self->info->totaldiscs() ) ) {
+                $self->info->totaldiscs($totaldiscs);
+                $self->tagchange("TOTALDISCS");
+            }
+    }
+
+    unless ( ( $p->album ) && ( lc( $p->album ) eq lc( $self->info->album ) ) ) {
+        $self->info->album( $p->{album} );
+        $self->tagchange("ALBUM");
+    }
+    my $releasedate = $self->_amazon_to_sql( $p->ReleaseDate );
+    unless ( ($releasedate) && ( $releasedate eq $self->info->releasedate ) ) {
+        $self->info->releasedate($releasedate);
+        $self->tagchange("RELEASEDATE");
+    }
+    unless ( ( $p->label ) && ( lc( $p->label ) eq lc( $self->info->label ) ) ) {
+        $self->info->label( $p->label );
+        $self->tagchange("LABEL");
+    }
+    my $asin = $p->ASIN;
+    unless ( ($asin) && ( lc($asin) eq lc( $self->info->asin ) ) ) {
+        $self->info->asin($asin);
+        $self->tagchange("ASIN");
+    }
+    if (    ( $p->ImageUrlLarge )
+         && ( ( not $self->info->picture ) || ( $self->options('coveroverwrite') ) ) ) {
+        $self->status( "DOWNLOADING LARGE COVER ART ", $p->ImageUrlLarge );
+        $self->info->picture( $self->_cover_art( $p->ImageUrlLarge ) );
+    }
+
+    if (    ( $p->ImageUrlMedium )
+         && ( ( not $self->info->picture ) ) ) {
+        $self->status( "DOWNLOADING MEDIUM COVER ART ", $p->ImageUrlMedium );
+        $self->info->picture( $self->_cover_art( $p->ImageUrlMedium ) );
+    }
+    return $self;
 }
 
 sub lwp {
-   my $self = shift;
-   unless ((exists $self->{lwp}) && ($self->{lwp})) {
-      if ($self->options->{amazon_ua}) {
-         $self->{lwp_ua} = $self->options->{lwp_ua};
-      }
-      else {
-         $self->{lwp_ua} = LWP::UserAgent->new();
-      }
+    my $self = shift;
+    unless ( ( exists $self->{lwp} ) && ( $self->{lwp} ) ) {
+        if ( $self->options->{amazon_ua} ) {
+            $self->{lwp_ua} = $self->options->{lwp_ua};
+        }
+        else {
+            $self->{lwp_ua} = LWP::UserAgent->new();
+        }
 
-   }
-   return $self->{lwp_ua}
+    }
+    return $self->{lwp_ua};
 }
 
 sub amazon_cache {
-   my $self = shift;
-   unless ((exists $self->{amazon_cache}) && ($self->{amazon_cache})) {
-      if ($self->options->{amazon_cache}) {
-         $self->{amazon_cache} = $self->options->{amazon_cache};
-      }
-      else {
-         $self->{amazon_cache} = Cache::FileCache->new(
-                                                  { namespace          => "amazon_cache",
-                                                    default_expires_in => 60000,
-                                                  }
-                                                );
-      }
-   }
-   return $self->{amazon_cache};
+    my $self = shift;
+    unless ( ( exists $self->{amazon_cache} ) && ( $self->{amazon_cache} ) ) {
+        if ( $self->options->{amazon_cache} ) {
+            $self->{amazon_cache} = $self->options->{amazon_cache};
+        }
+        else {
+            $self->{amazon_cache} =
+              Cache::FileCache->new(
+                                     { namespace          => "amazon_cache",
+                                       default_expires_in => 60000,
+                                     }
+                                   );
+        }
+    }
+    return $self->{amazon_cache};
 }
 
 sub coverart_cache {
-   my $self = shift;
-   unless ((exists $self->{coverart_cache}) && ($self->{coverart_cache})) {
-      if ($self->options->{coverart_cache}) {
-         $self->{coverart_cache} = $self->options->{coverart_cache};
-      }
-      else {
-         $self->{coverart_cache} = Cache::FileCache->new(
-                                                  { namespace          => "coverart_cache",
-                                                    default_expires_in => 60000,
-                                                  }
-                                                );
-      }
-   }
-   return $self->{coverart_cache};
+    my $self = shift;
+    unless ( ( exists $self->{coverart_cache} ) && ( $self->{coverart_cache} ) ) {
+        if ( $self->options->{coverart_cache} ) {
+            $self->{coverart_cache} = $self->options->{coverart_cache};
+        }
+        else {
+            $self->{coverart_cache} =
+              Cache::FileCache->new(
+                                     { namespace          => "coverart_cache",
+                                       default_expires_in => 60000,
+                                     }
+                                   );
+        }
+    }
+    return $self->{coverart_cache};
 
 }
 
 sub amazon_ua {
-   my $self = shift;
-   unless ((exists $self->{amazon_ua}) && ($self->{amazon_ua})) {
-      if ($self->options->{amazon_ua}) {
-         $self->{amazon_ua} = $self->options->{amazon_ua};
-      }
-      else {
-         $self->{amazon_ua} = Net::Amazon->new( token => $self->options->{token}, 
-                                          cache => $self->amazon_cache, 
-					  max_pages => $self->options->{max_pages},
-					  locale => $self->options->{locale},
-					  strict => 1,
-					  rate_limit => 1,);
-      }
-   }
-   return $self->{amazon_ua};
+    my $self = shift;
+    unless ( ( exists $self->{amazon_ua} ) && ( $self->{amazon_ua} ) ) {
+        if ( $self->options->{amazon_ua} ) {
+            $self->{amazon_ua} = $self->options->{amazon_ua};
+        }
+        else {
+            $self->{amazon_ua} = Net::Amazon->new( token      => $self->options->{token},
+                                                   cache      => $self->amazon_cache,
+                                                   max_pages  => $self->options->{max_pages},
+                                                   locale     => $self->options->{locale},
+                                                   strict     => 1,
+                                                   rate_limit => 1,
+                                                 );
+        }
+    }
+    return $self->{amazon_ua};
 }
 
 =pod
@@ -322,156 +351,184 @@ Highest album wins. A minimum of 10 pts needed to win the election by default (s
 Close name match means that both names are the same, after you get rid of white space, articles (the, a, an), lower case everything, translate roman numerals to decimal, etc.
 
 =cut
+
 sub _album_lookup {
-   my $self = shift;
+    my $self = shift;
 
-   my $req = Net::Amazon::Request::Artist->new( artist => $self->info->artist );
+    my $req = Net::Amazon::Request::Artist->new( artist => $self->info->artist );
 
-   if ( ($self->info->asin) && (not $self->options->{ignore_asin}) ) {
-      $self->status( "Doing ASIN lookup with ASIN: ", $self->info->asin );
-      $req = Net::Amazon::Request::ASIN->new( asin => $self->info->asin );
-   }
+    if ( ( $self->info->asin ) && ( not $self->options->{ignore_asin} ) ) {
+        $self->status( "Doing ASIN lookup with ASIN: ", $self->info->asin );
+        $req = Net::Amazon::Request::ASIN->new( asin => $self->info->asin );
+    }
 
-   my $resp = $self->amazon_ua->request($req);
-   my $n    = 0;
+    my $resp = $self->amazon_ua->request($req);
+    my $n    = 0;
 
-   my $maxscore = 0;
-   my $curmatch = undef;
+    my $maxscore = 0;
+    my $curmatch = undef;
 
-   if ( $resp->is_error() ) {
-      $self->error( $resp->message() );
-      return;
-   }
+    if ( $resp->is_error() ) {
+        $self->error( $resp->message() );
+        return;
+    }
 
-   for my $p ( $resp->properties ) {
-      $n++;
-      my $score = 0;
-      unless ( exists $p->{tracks} ) {
-         next;
-      }
-      unless ($curmatch) {
-         $curmatch = $p;
-      }
-	  my $asin = $p->{Asin} || $p->{ASIN};
-	  print STDERR "Checking out ASIN: ", $asin, "\n";
-      if (($asin) && ( uc($asin) eq uc($self->info->asin) ) && (not $self->options->{ignore_asin})) {
-         $score += 64;
-      }
-      if ( $p->{album} eq $self->info->album ) {
-         $score += 32;
-      }
-      elsif ( $self->simple_compare( $p->{album}, $self->info->album, ".80" ) ) {
-         $score += 16;
-      }
-      if ( scalar @{ $p->{tracks} } == $self->info->totaltracks ) {
-         $score += 4;
-      }
-      if ( $p->{year} == $self->info->year ) {
-         $score += 2;
-      }
-      if ( $p->{year} < $curmatch->{year} ) {
-         $score += 1;
-      }
-      my $m = 0;
-      my $t = 0;
-      foreach ( @{ $p->{tracks} } ) {
-         if ( $self->simple_compare( $_, $self->info->title, ".90" ) ) {
-            $m++;
-            $t = $m;
-         }
-      }
-     if ($m) {
-         $score += 8;
-         if ( $t == $self->info->track ) {
+    for my $p ( $resp->properties ) {
+        $n++;
+        my $score = 0;
+        unless ( exists $p->{tracks} ) {
+            next;
+        }
+        unless ($curmatch) {
+            $curmatch = $p;
+        }
+        my $asin = $p->{Asin} || $p->{ASIN};
+        $self->status( "Checking out ASIN: ", $asin );
+        if (    ($asin)
+             && ( uc($asin) eq uc( $self->info->asin ) )
+             && ( not $self->options->{ignore_asin} ) ) {
+            $score += 64;
+        }
+        if ( $p->{album} eq $self->info->album ) {
+            $score += 32;
+        }
+        elsif ( $self->simple_compare( $p->{album}, $self->info->album, ".80" ) ) {
+            $score += 16;
+        }
+        if ( scalar @{ $p->{tracks} } == $self->info->totaltracks ) {
+            $score += 4;
+        }
+        if ( $p->{year} == $self->info->year ) {
             $score += 2;
-         }
-      }
-      if ( $score > $maxscore ) {
-         $curmatch = $p;
-         $maxscore = $score;
-      }
-   }
-   if ( $maxscore < $self->options->{min_album_points} ) {
-      $self->status( "No album scored over " . $self->options->{min_album_points} ." [ " . $n . " canidates ]" );
-      return;
-   }
-   $self->status(   "Album title "
-                  . $curmatch->{album}
-                  . " won with score of $maxscore [ "
-                  . $n
-                  . " canidates]" );
-   return $curmatch;
+        }
+        if ( $p->{year} < $curmatch->{year} ) {
+            $score += 1;
+        }
+        my $m = 0;
+        my $t = 0;
+        foreach ( @{ $p->{tracks} } ) {
+            if ( $self->simple_compare( $_, $self->info->title, ".90" ) ) {
+                $m++;
+                $t = $m;
+            }
+        }
+        if ($m) {
+            $score += 8;
+            if ( $t == $self->info->track ) {
+                $score += 2;
+            }
+        }
+        if ( $score > $maxscore ) {
+            $curmatch = $p;
+            $maxscore = $score;
+        }
+    }
+    if ( $maxscore < $self->options->{min_album_points} ) {
+        $self->status(   "No album scored over "
+                       . $self->options->{min_album_points} . " [ "
+                       . $n
+                       . " canidates ]" );
+        return;
+    }
+    $self->status(   "Album title "
+                   . $curmatch->{album}
+                   . " won with score of $maxscore [ "
+                   . $n
+                   . " canidates]" );
+    return $curmatch;
 }
 
-
 sub _cover_art {
-   my $self = shift;
-   my $p    = shift;
-   return unless ( ref $p );
-   my $url = $p->{ImageUrlLarge} || $p->{ImageUrlMedium};
-   my $art = $self->coverart_cache->get($url);
+    my $self = shift;
+    my $url  = shift;
+    my $art  = $self->coverart_cache->get($url);
 
-   unless ($art) {
-      $self->status("DOWNLOADING URL: $url");
-      my $res = $self->lwp->get($url);
-      $art = $res->content;
-      $self->coverart_cache->set( $url, $art );
-   }
+    unless ($art) {
+        $self->status("DOWNLOADING URL: $url");
+        my $res = $self->lwp->get($url);
+        $art = $res->content;
+        $self->coverart_cache->set( $url, $art );
+    }
 
-   if ( substr( $art, 0, 6 ) eq "GIF89a" ) {
-      $self->status("Current cover is gif, downloading medium");
-      $url = $p->{ImageUrlMedium};
-      $art = $self->coverart_cache->get($url);
-      unless ($art) {
-         $self->status("DOWNLOADING URL: $url");
-         my $res = $self->lwp->get($url);
-         $art = $res->content;
-         $self->coverart_cache->set( $url, $art );
-      }
-   }
+    if ( substr( $art, 0, 6 ) eq "GIF89a" ) {
+        $self->status("Current cover is gif, skipping");
+        return;
+    }
 
-   if ( substr( $art, 0, 6 ) eq "GIF89a" ) {
-      $self->status("Image is STILL a gif, sorry Amazon must not have the cover");
-      return;
-   }
+    #   my $image = Image::Magick->new(magick=>'jpg');
+    #   $image->Resize(width=>300, height=>300);
+    #   $image->BlobToImage($art);
 
-   #   my $image = Image::Magick->new(magick=>'jpg');
-   #   $image->Resize(width=>300, height=>300);
-   #   $image->BlobToImage($art);
+    return {
+        "Picture Type" => "Cover (front)",
+        "MIME type"    => "image/jpg",
+        Description    => "",
 
-   return {
-      "Picture Type" => "Cover (front)",
-      "MIME type"    => "image/jpg",
-      Description    => "",
-
-      #       _Data => $image->ImageToBlob(magick => 'jpg'),
-      _Data => $art,
-          }
+        #       _Data => $image->ImageToBlob(magick => 'jpg'),
+        _Data => $art,
+           }
 
 }
 
 sub _amazon_to_sql {
-   my $self = shift; 
-   my $in = shift;
-   my %months = ( "january"   => 1,
-                  "february"  => 2,
-                  "march"     => 3,
-                  "april"     => 4,
-                  "may"       => 5,
-                  "june"      => 6,
-                  "july"      => 7,
-                  "august"    => 8,
-                  "september" => 9,
-                  "october"   => 10,
-                  "november"  => 11,
-                  "december"  => 12
-                );
-   if ( $in =~ /(\d\d) ([^,]+), (\d+)/ ) {
-      return sprintf( "%4d-%02d-%02d", $3, $months{ lc($2) }, $1 );
-   }
-   else {
-      return undef;
-   }
+    my $self = shift;
+    my $in   = shift;
+    my %months = ( "january"   => 1,
+                   "february"  => 2,
+                   "march"     => 3,
+                   "april"     => 4,
+                   "may"       => 5,
+                   "june"      => 6,
+                   "july"      => 7,
+                   "august"    => 8,
+                   "september" => 9,
+                   "october"   => 10,
+                   "november"  => 11,
+                   "december"  => 12
+                 );
+    if ( $in =~ /(\d\d) ([^,]+), (\d+)/ ) {
+        return sprintf( "%4d-%02d-%02d", $3, $months{ lc($2) }, $1 );
+    }
+    else {
+        return undef;
+    }
+}
+
+sub _tracks_by_discs {
+    my $self = shift;
+    my $r    = shift;
+    my $p    = $r->{xmlref};
+    my @discs;
+    if ( ( exists $p->{Tracks} ) && ( exists $p->{Tracks}->{Disc} ) ) {
+        @discs = map {
+            my @tracks = map { $_->{content} }
+              sort { $a->{Number} <=> $b->{Number} } @{ $_->{Track} };
+            \@tracks;
+          }
+          sort { $a->{Number} <=> $b->{Number} } @{ $p->{Tracks}->{Disc} };
+    }
+    return \@discs;
+}
+
+sub _tracks_by_name {
+    my $self = shift;
+    my $r    = shift;
+    my $p    = $r->{xmlref};
+    my %tracks;
+
+    if ( ( exists $p->{Tracks} ) && ( exists $p->{Tracks}->{Disc} ) ) {
+        foreach my $disc ( @{ $p->{Tracks}->{Disc} } ) {
+            if ( exists $disc->{Track} ) {
+                foreach my $track ( @{ $disc->{Track} } ) {
+                    unless ( exists $tracks{ $track->{content} } ) {
+                        $tracks{ $track->{content} } = $track;
+                        $track->{Disc} = $disc->{Number};
+                    }
+                }
+            }
+        }
+    }
+    return \%tracks;
 }
 
 1;

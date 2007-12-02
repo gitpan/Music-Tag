@@ -1,6 +1,6 @@
 package Music::Tag;
 
-# Copyright (c) 2006 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. All rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -48,7 +48,7 @@ $info->close();
 
 =head1 AUTHOR
 
-Edward Allen, edwardallenthethird@gmail.com
+Edward Allen, ealleniii _at_ cpan _dot_ org
 
 =head1 DESCRIPTION
 
@@ -63,8 +63,10 @@ use Carp;
 use Locale::Country;
 use File::Spec;
 use Encode;
+use Config::Options;
+use Digest::SHA1;
 use utf8;
-our $VERSION     = 0.20;
+our $VERSION = 0.23;
 
 use vars qw($AUTOLOAD);
 
@@ -108,91 +110,91 @@ Default is false. Setting this to true causes prevents the plugin from giving st
 =cut
 
 sub default_options {
-   {  verbose       => 0,
-      quiet         => 0,
-      ANSIColor     => 1,
-      LevenshteinXS => 1,
-      Levenshtein   => 1,
-      Unaccent      => 1,
-      Inflect	    => 1,
-      Stem	    => 0,
-      StemLocale    => "en-us",
-	  optionfile    => ["/etc/musictag.conf", $ENV{HOME} . "/.musictag.conf"],
-   };
+    {  verbose       => 0,
+       quiet         => 0,
+       ANSIColor     => 1,
+       LevenshteinXS => 1,
+       Levenshtein   => 1,
+       Unaccent      => 1,
+       Inflect       => 1,
+       Stem          => 0,
+       StemLocale    => "en-us",
+       optionfile    => [ "/etc/musictag.conf", $ENV{HOME} . "/.musictag.conf" ],
+    };
 }
 
 sub new {
-   my $class    = shift;
-   my $filename = shift;
-   my $options  = shift || {};
-   my $plugin   = shift;
-   my $self     = {};
-   if ( ref $class ) {
-      my $clone = {%$class};
-      bless $clone, ref $class;
-      return $clone;
-   }
-   else {
-      bless $self, $class;
-      $self->{_plugins} = [];
-      $self->options($self->default_options);
-	  $self->options->fromfile_perl();
-      $self->options($options);
-      $self->filename($filename);
-   }
-   if ( $self->options->{ANSIColor} ) {
-      eval { require Term::ANSIColor; };
-      if ($@) {
-         warn "Couldn't load ANSIColor: $@\n";
-         $self->options->{ANSIColor} = 0;
-      }
-   }
-   if ( $self->options->{LevenshteinXS} ) {
-      eval { require Text::LevenshteinXS; };
-      if ($@) {
-         warn "Couldn't load LevenshteinXS: $@\n";
-         $self->options->{LevenshteinXS} = 0;
-      }
-      $self->options->{Levenshtein} = 0;
-   }
-   elsif ( $self->options->{Levenshtein} ) {
-      eval {
-         if ($@) {
-            warn "Couldn't load Levenshtein: $@\n";
-            $self->options->{Levenshtein} = 0;
-         }
-      };
-   }
-   if ( $self->options->{Unaccent} ) {
-      eval { require Text::Unaccent; };
-      if ($@) {
-         warn "Couldn't load Text::Unaccent: $@\n";
-         $self->options->{Unaccent} = 0;
-      }
-   }
-   if ( $self->options->{Inflect} ) {
-      eval { require Lingua::EN::Inflect; };
-      if ($@) {
-         warn "Couldn't load Lingua::EN::Inflect: $@\n";
-         $self->options->{Inflect} = 0;
-      }
-   }
-   if ( $self->options->{Stem} ) {
-      eval { require Lingua::Stem; };
-      if ($@) {
-         warn "Couldn't load Lingua::Stem: $@\n";
-         $self->options->{Stem} = 0;
-      }
-      Lingua::Stem::set_locale($self->options->{StemLocale});
-   }
-   if ($plugin) {
-      $self->add_plugin( $plugin, $options );
-      return $self;
-   }
-   else {
-      return $self->auto_plugin($options);
-      return undef;
-   }
+    my $class    = shift;
+    my $filename = shift;
+    my $options  = shift || {};
+    my $plugin   = shift;
+    my $self     = {};
+    if ( ref $class ) {
+        my $clone = {%$class};
+        bless $clone, ref $class;
+        return $clone;
+    }
+    else {
+        bless $self, $class;
+        $self->{_plugins} = [];
+        $self->options( $self->default_options );
+        $self->options->fromfile_perl();
+        $self->options($options);
+        $self->filename($filename);
+    }
+    if ( $self->options->{ANSIColor} ) {
+        eval { require Term::ANSIColor; };
+        if ($@) {
+            warn "Couldn't load ANSIColor: $@\n";
+            $self->options->{ANSIColor} = 0;
+        }
+    }
+    if ( $self->options->{LevenshteinXS} ) {
+        eval { require Text::LevenshteinXS; };
+        if ($@) {
+            warn "Couldn't load LevenshteinXS: $@\n";
+            $self->options->{LevenshteinXS} = 0;
+        }
+        $self->options->{Levenshtein} = 0;
+    }
+    elsif ( $self->options->{Levenshtein} ) {
+        eval {
+            if ($@) {
+                warn "Couldn't load Levenshtein: $@\n";
+                $self->options->{Levenshtein} = 0;
+            }
+        };
+    }
+    if ( $self->options->{Unaccent} ) {
+        eval { require Text::Unaccent; };
+        if ($@) {
+            warn "Couldn't load Text::Unaccent: $@\n";
+            $self->options->{Unaccent} = 0;
+        }
+    }
+    if ( $self->options->{Inflect} ) {
+        eval { require Lingua::EN::Inflect; };
+        if ($@) {
+            warn "Couldn't load Lingua::EN::Inflect: $@\n";
+            $self->options->{Inflect} = 0;
+        }
+    }
+    if ( $self->options->{Stem} ) {
+        eval { require Lingua::Stem; };
+        if ($@) {
+            warn "Couldn't load Lingua::Stem: $@\n";
+            $self->options->{Stem} = 0;
+        }
+        Lingua::Stem::set_locale( $self->options->{StemLocale} );
+    }
+    if ($plugin) {
+        $self->add_plugin( $plugin, $options );
+        return $self;
+    }
+    else {
+        return $self->auto_plugin($options);
+        return undef;
+    }
 }
 
 =pod
@@ -214,72 +216,77 @@ Options can also be included in the string, as in Amazon;locale=us;trust_title=1
 =cut
 
 sub auto_plugin {
-   my $self = shift;
-   my $options = shift;
-   my $filename = $self->filename;
-   my $plugin = "";
+    my $self     = shift;
+    my $options  = shift;
+    my $filename = $self->filename;
+    my $plugin   = "";
 
-   if ( $filename =~ /\.mp3$/i ) {
-      $plugin = "MP3";
-   }
-   elsif ( $filename =~ /\.m4a$/i ) {
-      $plugin = "M4A";
-   }
-   elsif ( $filename =~ /\.m4p$/i ) {
-      $plugin = "M4A";
-   }
-   elsif ( $filename =~ /\.m4b$/i ) {
-      $plugin = "M4A";
-   }
-   elsif ( $filename =~ /\.ogg$/i ) {
-      $plugin = "OGG";
-   }
-   elsif ( $filename =~ /\.flac$/i ) {
-      $plugin = "FLAC";
-   }
-   if ($plugin) {
-      $self->add_plugin($plugin, $options);
-      return $self;
-   }
-   else {
-      warn "Sorry, I can't find a plugin for $filename\n";
-      return undef;
-   }
+    if ( $filename =~ /\.mp3$/i ) {
+        $plugin = "MP3";
+    }
+    elsif ( $filename =~ /\.m4a$/i ) {
+        $plugin = "M4A";
+    }
+    elsif ( $filename =~ /\.m4p$/i ) {
+        $plugin = "M4A";
+    }
+    elsif ( $filename =~ /\.mp4$/i ) {
+        $plugin = "M4A";
+    }
+    elsif ( $filename =~ /\.m4b$/i ) {
+        $plugin = "M4A";
+    }
+    elsif ( $filename =~ /\.ogg$/i ) {
+        $plugin = "OGG";
+    }
+    elsif ( $filename =~ /\.flac$/i ) {
+        $plugin = "FLAC";
+    }
+    if ($plugin) {
+        $self->add_plugin( $plugin, $options );
+        return $self;
+    }
+    else {
+        warn "Sorry, I can't find a plugin for $filename\n";
+        return undef;
+    }
 }
 
 sub add_plugin {
-   my $self    = shift;
-   my $object  = shift;
-   my $opts    = shift || {};
-   my $options = $self->options->clone->options($opts);
-   my $type    = shift || 0;
+    my $self    = shift;
+    my $object  = shift;
+    my $opts    = shift || {};
+    my $options = $self->options->clone->options($opts);
+    my $type    = shift || 0;
 
-   my $ref;
-   if ( ref $object ) {
-      $ref = $object;
-      $ref->info($self);
-      $ref->options($options);
-   }
-   else {
-      my ($plugin, $popts) = split(":", $object);
-      my @opts = split( /[;]/, $popts );
-      foreach (@opts) {
-         my ( $k, $v ) = split( "=", $_ );
-         $options->{$k} = $v;
-      }
-      eval {
-         eval { require "Music/Tag/${plugin}.pm" };
-         unless ( $plugin =~ /::/ ) {
-            $plugin = "Music::Tag::" . $plugin;
-         }
-         $ref = $plugin->new( $self, $options );
-      };
-      warn $@ if $@;
-   }
-   if ($ref) {
-      push @{ $self->{_plugins} }, $ref;
-   }
-   return $ref;
+    my $ref;
+    if ( ref $object ) {
+        $ref = $object;
+        $ref->info($self);
+        $ref->options($options);
+    }
+    else {
+        my ( $plugin, $popts ) = split( ":", $object );
+        if ($popts) {
+            my @opts = split( /[;]/, $popts );
+            foreach (@opts) {
+                my ( $k, $v ) = split( "=", $_ );
+                $options->{$k} = $v;
+            }
+        }
+        eval {
+            eval { require "Music/Tag/${plugin}.pm" };
+            unless ( $plugin =~ /::/ ) {
+                $plugin = "Music::Tag::" . $plugin;
+            }
+            $ref = $plugin->new( $self, $options );
+        };
+        warn $@ if $@;
+    }
+    if ($ref) {
+        push @{ $self->{_plugins} }, $ref;
+    }
+    return $ref;
 }
 
 =pod
@@ -293,18 +300,18 @@ The plugin method takes a regular expression as a string value and returns the f
 =cut
 
 sub plugin {
-   my $self   = shift;
-   my $plugin = shift;
-   if ( defined $plugin ) {
-      foreach ( @{ $self->{_plugins} } ) {
-         if ( ref($_) =~ /$plugin$/ ) {
-            return $_;
-         }
-      }
-   }
-   else {
-      return $self->{_plugins};
-   }
+    my $self   = shift;
+    my $plugin = shift;
+    if ( defined $plugin ) {
+        foreach ( @{ $self->{_plugins} } ) {
+            if ( ref($_) =~ /$plugin$/ ) {
+                return $_;
+            }
+        }
+    }
+    else {
+        return $self->{_plugins};
+    }
 }
 
 =pod
@@ -318,16 +325,16 @@ get_tag applies all active plugins to the current tag object in the order that t
 =cut
 
 sub get_tag {
-   my $self = shift;
-   foreach ( @{ $self->{_plugins} } ) {
-      if (ref $_) {
-         $_->get_tag();
-      }
-      else {
-         warn "Invalid Plugin in list: $_\n";
-      }
-   }
-   return $self;
+    my $self = shift;
+    foreach ( @{ $self->{_plugins} } ) {
+        if ( ref $_ ) {
+            $_->get_tag();
+        }
+        else {
+            warn "Invalid Plugin in list: $_\n";
+        }
+    }
+    return $self;
 }
 
 =pod
@@ -341,16 +348,16 @@ set_tag writes info back to disk for all tags, or submits info if appropriate. S
 =cut
 
 sub set_tag {
-   my $self = shift;
-   foreach ( @{ $self->{_plugins} } ) {
-      if (ref $_) {
-         $_->set_tag();
-      }
-      else {
-         warn "Invalid Plugin in list!\n";
-      }
-   }
-   return $self;
+    my $self = shift;
+    foreach ( @{ $self->{_plugins} } ) {
+        if ( ref $_ ) {
+            $_->set_tag();
+        }
+        else {
+            warn "Invalid Plugin in list!\n";
+        }
+    }
+    return $self;
 }
 
 =pod
@@ -364,16 +371,16 @@ strip_tag removes info from on disc tag for all plugins. Specifically, it perfor
 =cut
 
 sub strip_tag {
-   my $self = shift;
-   foreach ( @{ $self->{_plugins} } ) {
-      if (ref $_) {
-         $_->strip_tag();
-      }
-      else {
-         warn "Invalid Plugin in list!\n";
-      }
-   }
-   return $self;
+    my $self = shift;
+    foreach ( @{ $self->{_plugins} } ) {
+        if ( ref $_ ) {
+            $_->strip_tag();
+        }
+        else {
+            warn "Invalid Plugin in list!\n";
+        }
+    }
+    return $self;
 }
 
 =pod
@@ -387,18 +394,18 @@ closes active filehandles on all plugins. Should be called before object destroy
 =cut
 
 sub close {
-   my $self = shift;
-   foreach ( @{ $self->{_plugins} } ) {
-      if (ref $_) {
-         $_->close(@_);
-         $_->{info} = undef;
-         $_ = undef;
-      }
-      else {
-         warn "Invalid Plugin in list!\n";
-      }
-   }
-   $self = undef;
+    my $self = shift;
+    foreach ( @{ $self->{_plugins} } ) {
+        if ( ref $_ ) {
+            $_->close(@_);
+            $_->{info} = undef;
+            $_ = undef;
+        }
+        else {
+            warn "Invalid Plugin in list!\n";
+        }
+    }
+    $self = undef;
 }
 
 =pod
@@ -412,12 +419,12 @@ Returns true if changed. Optional value $new sets changed set to True of $new is
 =cut
 
 sub changed {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined $new ) {
-      $self->{changed}++;
-   }
-   return $self->{changed};
+    my $self = shift;
+    my $new  = shift;
+    if ( defined $new ) {
+        $self->{changed}++;
+    }
+    return $self->{changed};
 }
 
 =pod
@@ -434,15 +441,41 @@ This method is used to access or change the options. When called with no options
 =cut
 
 sub options {
-   my $self = shift;
-   if ( exists $self->{_options} ) {
-      return $self->{_options}->options(@_);
-   }
-   else {
-      $self->{_options} = MTOptions->new();
-      return $self->{_options}->options(@_);
-   }
+    my $self = shift;
+    if ( exists $self->{_options} ) {
+        return $self->{_options}->options(@_);
+    }
+    else {
+        $self->{_options} = Config::Options->new();
+        return $self->{_options}->options(@_);
+    }
 }
+
+sub setfileinfo {
+	my $self = shift;
+	if ($self->filename) {
+		my @stat = stat $self->filename;
+		$self->mtime($stat[9]);
+		$self->bytes($stat[7]);
+	}
+}
+
+sub sha1 {
+   my $self = shift;
+   return unless (($self->filename) && (-e $self->filename ));
+   my $maxsize = 4 * 4096;
+   open (IN, $self->filename) or die "Bad file: $self->filename\n";
+   my @stat = stat $self->filename;
+   my $sha1 = Digest::SHA1->new();
+   $sha1->add(pack("V",$stat[7]));
+   my $d;
+   if (read(IN, $d, $maxsize)) {
+      $sha1->add($d);
+   }
+   CORE::close(IN);
+   return $sha1->hexdigest;
+}
+
 
 =pod
 
@@ -452,9 +485,11 @@ Returns a list of all data methods supported.
 
 =cut
 
-sub datamethods {[
-qw(artist album title comment secs duration tracknum year releasedate sortname mb_artistid mb_albumid mb_trackid album_type artist_type lyrics picture url genre disc track discnum totaldiscs totaltracks tempo label encoder frequency bitrate compilation composer copyright rating lastplayed playcount filename asin stereo bytes codec frames vbr appleid recorddate country mip_puid originalartist countrycode artist_start artist_end encoded_by songkey artkey albkey albumid songid artistid path user)
-]}
+our @DATAMETHODS = qw(artist album title comment secs duration tracknum year releasedate sortname mb_artistid mb_albumid mb_trackid album_type artist_type lyrics picture url genre disc track discnum totaldiscs totaltracks tempo label encoder frequency bitrate compilation composer copyright rating lastplayed playcount filename asin stereo bytes mtime codec frames framesize vbr appleid recorddate country mip_puid originalartist countrycode artist_start artist_end encoded_by songkey artkey albkey albumid songid artistid path user ipod ipod_location ipod_trackid ipod_dbid disctitle booklet pregap postgap samplecount gaplessdata);
+
+sub datamethods {
+	return \@DATAMETHODS;
+}
 
 =pod
 
@@ -464,24 +499,77 @@ These methods are used to access the tag info. Not all methods are supported by 
 
 =cut
 
+
+# This method is far from perfect.  It can't be perfect.
+# It won't mangle valid UTF-8, however.
+# Just be sure to always return perl utf8 in plugins when possible.
+
+sub _isutf8 {
+	my $self = shift;
+	my $in = shift;
+	# If it is a proper utf8, with tag, just return it.
+	if (Encode::is_utf8($in,1)) {
+		return $in;
+	}
+
+	my $has7f = 0;
+	foreach (split(//, $in)) {
+		if (ord($_) >= 0x7f) {
+			$has7f++;
+		}
+	}
+	# No char >7F it is prob. valid ASCII, just return it.
+	unless ($has7f) {
+		return $in;
+	}
+
+	# See if it is a valid UTF-16 encoding.
+	#my $out;
+	#eval {
+	#	$out = decode("UTF-16", $in, 1);
+	#};
+	#return $out unless $@;
+
+	# See if it is a valid UTF-16LE encoding.
+	#my $out;
+	#eval {
+	#	$out = decode("UTF-16LE", $in, 1);
+	#};
+	#return $out unless $@;
+
+	# See if it is a valid UTF-8 encoding.
+	my $out;
+    eval {
+		$out = decode("UTF-8", $in, 1);
+	};
+	return $out unless $@;
+
+	# Finally just give up and return it.
+	
+	return $in;
+}
+    
+
 sub _accessor {
-   my $self    = shift;
-   my $attr    = shift;
-   my $value   = shift;
-   my $default = shift;
-   unless ( exists $self->{ uc($attr) } ) {
-      $self->{ uc($attr) } = undef;
-   }
-   if ( defined $value ) {
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting $attr to ", ( defined $value ) ? $value : "UNDEFINED" );
-      }
-      $self->{ uc($attr) } = $value;
-   }
-   if ( ( defined $default ) && ( not defined $self->{ uc($attr) } ) ) {
-      $self->{ uc($attr) } = $default;
-   }
-   return $self->{ uc($attr) };
+    my $self    = shift;
+    my $attr    = shift;
+    my $value   = shift;
+    my $default = shift;
+    unless ( exists $self->{ uc($attr) } ) {
+        $self->{ uc($attr) } = undef;
+    }
+    if ( defined $value ) {
+		$value = $self->_isutf8($value);
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting $attr to ",
+                           ( defined $value ) ? $value : "UNDEFINED" );
+        }
+        $self->{ uc($attr) } = $value;
+    }
+    if ( ( defined $default ) && ( not defined $self->{ uc($attr) } ) ) {
+        $self->{ uc($attr) } = $default;
+    }
+    return $self->{ uc($attr) };
 }
 
 =pod
@@ -496,12 +584,13 @@ The type of the release. Specifically, the MusicBrainz type (ALBUM OFFICIAL, etc
 =item albumartist
 
 The artist responsible for the album. Usually the same as the artist, and will return the value of artist if unset.
+
 =cut
 
 sub albumartist {
-   my $self = shift;
-   my $new  = shift;
-   return $self->_accessor( "albumartist", $new, $self->artist() );
+    my $self = shift;
+    my $new  = shift;
+    return $self->_accessor( "albumartist", $new, $self->artist() );
 }
 
 =pod
@@ -522,6 +611,11 @@ The Amazon ASIN number for this album.
 
 Enconding bitrate.
 
+=item booklet
+
+URL to a digital booklet. Usually in PDF format. iTunes passes these out sometimes, or you could scan a booklet
+and use this to store value. URL is assumed to be realtive to file location.
+
 =item comment
 
 A comment about the track.
@@ -541,18 +635,19 @@ A copyright message can be placed here.
 =cut
 
 sub country {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined($new) ) {
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting country  to ", ( defined $new ) ? $new : "UNDEFINED" );
-      }
-      $self->{COUNTRYCODE} = country2code($new);
-   }
-   if ( $self->countrycode ) {
-      return $self->code2country( $self->countrycode );
-   }
-   return undef;
+    my $self = shift;
+    my $new  = shift;
+    if ( defined($new) ) {
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting country  to ",
+                           ( defined $new ) ? $new : "UNDEFINED" );
+        }
+        $self->{COUNTRYCODE} = country2code($new);
+    }
+    if ( $self->countrycode ) {
+        return $self->code2country( $self->countrycode );
+    }
+    return undef;
 }
 
 =pod
@@ -561,6 +656,10 @@ sub country {
 
 In a multi-volume set, the disc number.
 
+=item disctitle
+
+In a multi-volume set, the title of a disc.
+
 =item discnum
 
 The disc number and optionally the total number of discs, seperated by a slash. Setting it sets the disc and totaldiscs values (and vice-versa).
@@ -568,30 +667,32 @@ The disc number and optionally the total number of discs, seperated by a slash. 
 =cut
 
 sub discnum {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined($new) ) {
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting discnum  to ", ( defined $new ) ? $new : "UNDEFINED" );
-      }
-      my ( $t, $tt ) = split( "/", $new );
-      my $r = "";
-      if ($t) {
-         $self->disc($t);
-         $r .= $t;
-      }
-      if ($tt) {
-         $self->totaldiscs($tt);
-         $r .= "/" . $tt;
-      }
-      $self->{DISCNUM} = $r;
-   }
-   my $ret = $self->disc();
-   if ( $self->totaldiscs ) {
-      $ret .= "/" . $self->totaldiscs;
-   }
-   return $ret;
+    my $self = shift;
+    my $new  = shift;
+    if ( defined($new) ) {
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting discnum  to ",
+                           ( defined $new ) ? $new : "UNDEFINED" );
+        }
+        my ( $t, $tt ) = split( "/", $new );
+        my $r = "";
+        if ($t) {
+            $self->disc($t);
+            $r .= $t;
+        }
+        if ($tt) {
+            $self->totaldiscs($tt);
+            $r .= "/" . $tt;
+        }
+        $self->{DISCNUM} = $r;
+    }
+    my $ret = $self->disc();
+    if ( $self->totaldiscs ) {
+        $ret .= "/" . $self->totaldiscs;
+    }
+    return $ret;
 }
+
 
 =pod
 
@@ -602,21 +703,22 @@ The length of the track in milliseconds. Returns secs * 1000 if not set. Changes
 =cut
 
 sub duration {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined($new) ) {
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting duration  to ", ( defined $new ) ? $new : "UNDEFINED" );
-      }
-      $self->{DURATION} = $new;
-      $self->{SECS}     = int( $new / 1000 );
-   }
-   if ( ( exists $self->{DURATION} ) && ( $self->{DURATION} ) ) {
-      return $self->{DURATION};
-   }
-   elsif ( ( exists $self->{SECS} ) && ( $self->{SECS} ) ) {
-      return $self->secs * 1000;
-   }
+    my $self = shift;
+    my $new  = shift;
+    if ( defined($new) ) {
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting duration  to ",
+                           ( defined $new ) ? $new : "UNDEFINED" );
+        }
+        $self->{DURATION} = $new;
+        $self->{SECS}     = int( $new / 1000 );
+    }
+    if ( ( exists $self->{DURATION} ) && ( $self->{DURATION} ) ) {
+        return $self->{DURATION};
+    }
+    elsif ( ( exists $self->{SECS} ) && ( $self->{SECS} ) ) {
+        return $self->secs * 1000;
+    }
 }
 
 =pod
@@ -632,21 +734,38 @@ The filename of the track.
 =cut
 
 sub filename {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined($new) ) {
-      my $file = $new;
-      if ($new) {
-         $file = File::Spec->rel2abs($new);
-	  }
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting filename  to ", ( defined $file ) ? $file : "UNDEFINED" );
-      }
-      $self->{filename} = $file;
-   }
-   return $self->{filename};
+    my $self = shift;
+    my $new  = shift;
+    if ( defined($new) ) {
+        my $file = $new;
+        if ($new) {
+            $file = File::Spec->rel2abs($new);
+        }
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting filename  to ",
+                           ( defined $file ) ? $file : "UNDEFINED" );
+        }
+        $self->{filename} = $file;
+    }
+    return $self->{filename};
 
 }
+
+=item filedir
+
+The path that music file is located in.
+
+=cut
+
+sub filedir {
+	my $self = shift;
+	if ($self->filename) {
+		my ($vol, $path, $file) = File::Spec->splitpath($self->filename);
+		return File::Spec->catpath($vol, $path, "");
+	}
+	return undef;
+}
+
 
 =pod
 
@@ -687,25 +806,112 @@ A hashref that contains the following:
    "MIME type"     => The MIME Type of the picture encoding
    "Picture Type"  => What the picture is off.  Usually set to 'Cover (front)'
    "Description"   => A short description of the picture
-   "_Data"	   => The binary data for the picture.
+   "_Data"	       => The binary data for the picture.
+   "filename"	   => A filename for the picture.  Data overrides "_Data" and will
+   				      be returned as _Data if queried.  Filename is calculated as relative
+					  to the path of the music file as stated in "filename" or root if no
+					  filename for music file available.
 }
+
+
+Note hashref MAY be generated each call.  Do not modify and assume tag will be modified!
 
 =cut
 
-sub picture {
-   my $self = shift;
-   unless ( exists $self->{PICTURE} ) {
-      $self->{PICTURE} = {};
-   }
-   $self->{PICTURE} = shift if @_;
+sub _binslurp {
+    my $file = shift;
+    local *IN;
+    open( IN, $file ) or die "Couldn't open $file: $!";
+    my $ret;
+    my $off = 0;
+    while ( my $r = read IN, $ret, 1024, $off ) { last unless $r; $off += $r }
+    return $ret;
+}
 
-   if ((exists $self->{PICTURE}->{_Data}) &&
-       (length $self->{PICTURE}->{_Data})) {
-      return $self->{PICTURE};
-   }
-   else {
-      return undef;
-   }
+sub picture {
+    my $self = shift;
+    unless ( exists $self->{PICTURE} ) {
+        $self->{PICTURE} = {};
+    }
+    $self->{PICTURE} = shift if @_;
+
+	if ( (exists $self->{PICTURE}->{filename}) && ($self->{PICTURE}->{filename})) {
+		my $root = File::Spec->rootdir();
+		if ($self->filename) {
+			$root = $self->filedir;
+		}
+		my $picfile = File::Spec->rel2abs($self->{PICTURE}->{filename}, $root);
+		if (-f $picfile) {
+			if ($self->{PICTURE}->{_Data}) { 
+				 delete $self->{PICTURE}->{_Data} 
+			}
+			my %ret = %{$self->{PICTURE}}; # Copy ref
+			$ret{_Data} = _binslurp($picfile);
+			return \%ret;
+		}
+	}
+    elsif (    ( exists $self->{PICTURE}->{_Data} )
+         && ( length $self->{PICTURE}->{_Data} ) ) {
+        return $self->{PICTURE};
+    }
+    else {
+        return undef;
+    }
+}
+
+=pod
+
+=item picture_filename
+
+Returns filename used for picture data.  If no filename returns 0.  If no picture returns undef.
+
+=cut
+
+sub picture_filename {
+    my $self = shift;
+	if ((exists $self->{PICTURE}) && ($self->{PICTURE}->{filename})) {
+		return $self->{PICTURE}->{filename};
+	}
+	elsif ((exists $self->{PICTURE}) && ($self->{PICTURE}->{_Data}) && (length($self->{PICTURE}->{_Data}))) {
+		return 0;
+	}
+	else {
+		return undef;
+	}
+}
+
+=pod
+
+=item picture_exists
+
+Returns true if tag has picture data (or filename), false if not.  Convenience method to prevant reading the file. 
+Does check for existense of picture file, however.
+
+
+=cut
+
+sub picture_exists {
+    my $self = shift;
+	if ( (exists $self->{PICTURE}->{filename}) && ($self->{PICTURE}->{filename})) {
+		my $root = File::Spec->rootdir();
+		if ($self->filename) {
+			$root = $self->filedir;
+		}
+		my $picfile = File::Spec->rel2abs($self->{PICTURE}->{filename}, $root);
+		if (-f $picfile) {
+			return 1;
+		}
+		else {
+			$self->status("Picture: ", $picfile, " does not exists");
+		}
+	}
+    elsif (    ( exists $self->{PICTURE}->{_Data} )
+         && ( length $self->{PICTURE}->{_Data} ) ) {
+        return 1; 
+    }
+    else {
+        return undef;
+    }
 }
 
 =pod
@@ -752,29 +958,30 @@ The track number and optionally the total number of tracks, seperated by a slash
 =cut
 
 sub tracknum {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined($new) ) {
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting tracknum  to ", ( defined $new ) ? $new : "UNDEFINED" );
-      }
-      my ( $t, $tt ) = split( "/", $new );
-      my $r = "";
-      if ($t) {
-         $self->track($t);
-         $r .= $t;
-      }
-      if ($tt) {
-         $self->totaltracks($tt);
-         $r .= "/" . $tt;
-      }
-      $self->{TRACKNUM} = $r;
-   }
-   my $ret = $self->track();
-   if ( $self->totaltracks ) {
-      $ret .= "/" . $self->totaltracks;
-   }
-   return $ret;
+    my $self = shift;
+    my $new  = shift;
+    if ( defined($new) ) {
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting tracknum  to ",
+                           ( defined $new ) ? $new : "UNDEFINED" );
+        }
+        my ( $t, $tt ) = split( "/", $new );
+        my $r = "";
+        if ($t) {
+            $self->track($t);
+            $r .= $t;
+        }
+        if ($tt) {
+            $self->totaltracks($tt);
+            $r .= "/" . $tt;
+        }
+        $self->{TRACKNUM} = $r;
+    }
+    my $ret = $self->track();
+    if ( $self->totaltracks ) {
+        $ret .= "/" . $self->totaltracks;
+    }
+    return $ret;
 }
 
 =pod
@@ -789,74 +996,77 @@ The year a track was released.  Defaults to year set in releasedate if not set.
 =cut
 
 sub year {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined($new) ) {
-      if ( $self->options('verbose') ) {
-         $self->status( "VERBOSE:  Setting year  to ", ( defined $new ) ? $new : "UNDEFINED" );
-      }
-      $self->{YEAR} = $new;
-   }
-   if ( ( exists $self->{YEAR} ) && ( $self->{YEAR} ) ) {
-      return $self->{YEAR};
-   }
-   elsif ( $self->releasedate ) {
-      if ( $self->releasedate =~ /^(\d\d\d\d)-?/ ) {
-         $self->{YEAR} = $1;
-         return $1;
-      }
-   }
-   return undef;
+    my $self = shift;
+    my $new  = shift;
+    if ( defined($new) ) {
+        if ( $self->options('verbose') ) {
+            $self->status( "VERBOSE:  Setting year  to ", ( defined $new ) ? $new : "UNDEFINED" );
+        }
+        $self->{YEAR} = $new;
+    }
+    if ( ( exists $self->{YEAR} ) && ( $self->{YEAR} ) ) {
+        return $self->{YEAR};
+    }
+    elsif ( $self->releasedate ) {
+        if ( $self->releasedate =~ /^(\d\d\d\d)-?/ ) {
+            $self->{YEAR} = $1;
+            return $1;
+        }
+    }
+    return undef;
 }
 
 sub status {
-   my $self = shift;
-   unless ( $self->options('quiet') ) {
-      my $name = ref($self);
-      $name =~ s/^Music:://g;
-      print $self->tenprint( $name, 'bold white' ), @_, "\n";
-   }
+    my $self = shift;
+    unless ( $self->options('quiet') ) {
+        my $name = ref($self);
+        $name =~ s/^Music:://g;
+        print $self->tenprint( $name, 'bold white' ), @_, "\n";
+    }
 }
 
 sub tenprint {
-   my $self  = shift;
-   my $text  = shift;
-   my $color = shift || "bold yellow";
-   my $size  = shift || 10;
-   return $self->color($color)
-     . sprintf( '%' . $size . 's: ', substr( $text, 0, $size ) )
-     . $self->color('reset');
+    my $self  = shift;
+    my $text  = shift;
+    my $color = shift || "bold yellow";
+    my $size  = shift || 10;
+    return $self->color($color)
+      . sprintf( '%' . $size . 's: ', substr( $text, 0, $size ) )
+      . $self->color('reset');
 }
 
 sub color {
-   my $self = shift;
-   if ( $self->options->{ANSIColor} ) {
-      return Term::ANSIColor::color(@_);
-   }
-   else {
-      return "";
-   }
+    my $self = shift;
+    if ( $self->options->{ANSIColor} ) {
+        return Term::ANSIColor::color(@_);
+    }
+    else {
+        return "";
+    }
 }
 
 sub error {
-   my $self = shift;
-   unless ( $self->options('quiet') ) {
-      warn ref($self), " ", @_, "\n";
-   }
+    my $self = shift;
+    unless ( $self->options('quiet') ) {
+        warn ref($self), " ", @_, "\n";
+    }
 }
 
 sub AUTOLOAD {
-   my $self = shift;
-   my $attr = $AUTOLOAD;
-   $attr =~ s/.*:://;
-   my $new = shift;
-   my $okmethods = { map { lc($_) => 1 } @{$self->datamethods} };
-   if ( $okmethods->{ lc($attr) } ) {
-      return $self->_accessor( $attr, $new );
-   }
-   else {
-      croak "Music::Tag:  Invalid method: $attr called";
-   }
+    my $self = shift;
+    my $attr = $AUTOLOAD;
+    $attr =~ s/.*:://;
+    my $new = shift;
+    my $okmethods = { map { lc($_) => 1 } @DATAMETHODS };
+    if ( $okmethods->{ lc($attr) } ) {
+        return $self->_accessor( $attr, $new );
+    }
+    else {
+        croak "Music::Tag:  Invalid method: $attr called";
+    }
+}
+
+sub DESTROY {
 }
 
 1;
@@ -879,15 +1089,15 @@ Set in template. If you override, it should take as options a reference to a Mus
 =cut
 
 sub new {
-   my $class   = shift;
-   my $parent  = shift;
-   my $options = shift || {};
-   my $self    = {};
-   bless $self, $class;
-   $self->info($parent);
-   $self->options( $self->default_options );
-   $self->options($options);
-   return $self;
+    my $class   = shift;
+    my $parent  = shift;
+    my $options = shift || {};
+    my $self    = {};
+    bless $self, $class;
+    $self->info($parent);
+    $self->options( $self->default_options );
+    $self->options($options);
+    return $self;
 }
 
 =pod
@@ -899,12 +1109,12 @@ Should return a reference to the associated Music::Tag object. If passed an obje
 =cut
 
 sub info {
-   my $self = shift;
-   my $val  = shift;
-   if ( defined $val && ref $val ) {
-      $self->{info} = $val;
-   }
-   return $self->{info};
+    my $self = shift;
+    my $val  = shift;
+    if ( defined $val && ref $val ) {
+        $self->{info} = $val;
+    }
+    return $self->{info};
 }
 
 =item get_tag()
@@ -952,11 +1162,11 @@ Inhereted method that can be called to announce a tag change from what is read o
 =cut
 
 sub tagchange {
-   my $self = shift;
-   my $tag  = uc(shift);
-   my $to   = shift || $self->info->{$tag};
-   $self->status( $self->info->tenprint( $tag, 'bold blue', 15 ) . $to );
-   $self->info->changed(1);
+    my $self = shift;
+    my $tag  = uc(shift);
+    my $to   = shift || $self->info->{$tag};
+    $self->status( $self->info->tenprint( $tag, 'bold blue', 15 ) . '"'.$to.'"' );
+    $self->info->changed(1);
 }
 
 =item simplify
@@ -966,115 +1176,111 @@ A usfull method for simplifying artist names and titles. Takes a string, and ret
 =cut
 
 sub simplify {
-   my $self = shift;
-   my $text = shift;
-   chomp $text;
+    my $self = shift;
+    my $text = shift;
+    chomp $text;
 
-   # Text::Unaccent wants a char set, this enforces that...
-   if ($self->options->{Unaccent}) {
-      $text = Text::Unaccent::unac_string( "UTF-8", 
-                                            encode( "utf8", $text , Encode::FB_DEFAULT) 
-					  );
-   }
+    # Text::Unaccent wants a char set, this enforces that...
+    if ( $self->options->{Unaccent} ) {
+        $text = Text::Unaccent::unac_string( "UTF-8", encode( "utf8", $text, Encode::FB_DEFAULT ) );
+    }
 
-   
-   $text = lc( $text );
+    $text = lc($text);
 
-   $text =~ s/\[[^\]]+\]//g;
-   $text =~ s/[\s_]/ /g;
+    $text =~ s/\[[^\]]+\]//g;
+    $text =~ s/[\s_]/ /g;
 
-   if ($self->options->{Stem}) {
-      $text = join(" ", @{Lingua::Stem::stem(split(/\s/, $text))});
-   }
-   
-   if ( length($text) > 5 ) {
-      $text =~ s/\bthe\s//g;
-      $text =~ s/\ba\s//g;
-      $text =~ s/\ban\s//g;
-      $text =~ s/\band\s//g;
-      $text =~ s/\ble\s//g;
-      $text =~ s/\bles\s//g;
-      $text =~ s/\bla\s//g;
-      $text =~ s/\bde\s//g;
-   }
-   if ($self->options->{Inflect}) {
-     $text =~ s/(\.?\d+\,?\d*\.?\d*)/Lingua::EN::Inflect::NUMWORDS($1)/eg;
-   }
-   else {
-      $text =~ s/\b10\s/ten /g;
-      $text =~ s/\b9\s/nine /g;
-      $text =~ s/\b8\s/eight /g;
-      $text =~ s/\b7\s/seven /g;
-      $text =~ s/\b6\s/six /g;
-      $text =~ s/\b5\s/five /g;
-      $text =~ s/\b4\s/four /g;
-      $text =~ s/\b3\s/three /g;
-      $text =~ s/\b2\s/two /g;
-      $text =~ s/\b1\s/one /g;
-   }
+    if ( $self->options->{Stem} ) {
+        $text = join( " ", @{ Lingua::Stem::stem( split( /\s/, $text ) ) } );
+    }
 
-   $text =~ s/\sii\b/two/g;
-   $text =~ s/\siii\b/three/g;
-   $text =~ s/\siv\b/four/g;
-   $text =~ s/\sv\b/five/g;
-   $text =~ s/\svi\b/six/g;
-   $text =~ s/\svii\b/seven/g;
-   $text =~ s/\sviii\b/eight/g;
+    if ( length($text) > 5 ) {
+        $text =~ s/\bthe\s//g;
+        $text =~ s/\ba\s//g;
+        $text =~ s/\ban\s//g;
+        $text =~ s/\band\s//g;
+        $text =~ s/\ble\s//g;
+        $text =~ s/\bles\s//g;
+        $text =~ s/\bla\s//g;
+        $text =~ s/\bde\s//g;
+    }
+    if ( $self->options->{Inflect} ) {
+        $text =~ s/(\.?\d+\,?\d*\.?\d*)/Lingua::EN::Inflect::NUMWORDS($1)/eg;
+    }
+    else {
+        $text =~ s/\b10\s/ten /g;
+        $text =~ s/\b9\s/nine /g;
+        $text =~ s/\b8\s/eight /g;
+        $text =~ s/\b7\s/seven /g;
+        $text =~ s/\b6\s/six /g;
+        $text =~ s/\b5\s/five /g;
+        $text =~ s/\b4\s/four /g;
+        $text =~ s/\b3\s/three /g;
+        $text =~ s/\b2\s/two /g;
+        $text =~ s/\b1\s/one /g;
+    }
 
+    $text =~ s/\sii\b/two/g;
+    $text =~ s/\siii\b/three/g;
+    $text =~ s/\siv\b/four/g;
+    $text =~ s/\sv\b/five/g;
+    $text =~ s/\svi\b/six/g;
+    $text =~ s/\svii\b/seven/g;
+    $text =~ s/\sviii\b/eight/g;
 
-   $text =~ s/[^a-z0-9]//g;
-   return $text;
+    $text =~ s/[^a-z0-9]//g;
+    return $text;
 }
 
 # similar_percent is a precent, so should be open set (0..1)
 sub simple_compare {
-   my $self = shift;
-   my $a    = shift;
-   my $b    = shift;
-   my $similar_percent = shift;
-   my $crop_percent  = shift;
+    my $self            = shift;
+    my $a               = shift;
+    my $b               = shift;
+    my $similar_percent = shift;
+    my $crop_percent    = shift;
 
-   #warn "Simple_compare called\n";
-   my $sa = $self->simplify($a);
-   my $sb = $self->simplify($b);
-   if ( $sa eq $sb ) {
-      return 1;
-   }
+    #warn "Simple_compare called\n";
+    my $sa = $self->simplify($a);
+    my $sb = $self->simplify($b);
+    if ( $sa eq $sb ) {
+        return 1;
+    }
 
-   return unless ( $similar_percent || $crop_percent );
+    return unless ( $similar_percent || $crop_percent );
 
-   my $la  = length($sa);
-   my $lb  = length($sb);
-   my $max = ( $la < $lb ) ? $lb : $la;
-   my $min = ( $la < $lb ) ? $la : $lb;
+    my $la  = length($sa);
+    my $lb  = length($sb);
+    my $max = ( $la < $lb ) ? $lb : $la;
+    my $min = ( $la < $lb ) ? $la : $lb;
 
-   return unless ( $min and $max );
+    return unless ( $min and $max );
 
-   my $dist = undef;
-   if ( $self->options->{LevenshteinXS} ) {
-      $dist = Text::LevenshteinXS::distance( $sa, $sb );
-   }
-   elsif ( $self->options->{Levenshtein} ) {
-      $dist = Text::Levenshtein::distance( $sa, $sb );
-   }
-   unless ($crop_percent) {
-      $crop_percent = $similar_percent * ( 2 / 3 );
-   }
+    my $dist = undef;
+    if ( $self->options->{LevenshteinXS} ) {
+        $dist = Text::LevenshteinXS::distance( $sa, $sb );
+    }
+    elsif ( $self->options->{Levenshtein} ) {
+        $dist = Text::Levenshtein::distance( $sa, $sb );
+    }
+    unless ($crop_percent) {
+        $crop_percent = $similar_percent * ( 2 / 3 );
+    }
 
-   if ( ( defined $dist ) && ( ( ( $min - $dist ) / $min ) >= $similar_percent ) ) {
-      return -1;
-   }
+    if ( ( defined $dist ) && ( ( ( $min - $dist ) / $min ) >= $similar_percent ) ) {
+        return -1;
+    }
 
-   if ( $min < 10 ) {
-      return 0;
-   }
-   if ( ( ( ( 2 * $min ) - $max ) / $min ) <= $crop_percent ) {
-      return 0;
-   }
-   if ( substr( $sa, 0, $min ) eq substr( $sb, 0, $min ) ) {
-      return -1;
-   }
-   return 0;
+    if ( $min < 10 ) {
+        return 0;
+    }
+    if ( ( ( ( 2 * $min ) - $max ) / $min ) <= $crop_percent ) {
+        return 0;
+    }
+    if ( substr( $sa, 0, $min ) eq substr( $sb, 0, $min ) ) {
+        return -1;
+    }
+    return 0;
 }
 
 =item status
@@ -1084,12 +1290,12 @@ Inhereted method to print a pretty status message.
 =cut
 
 sub status {
-   my $self = shift;
-   unless ( $self->info->options('quiet') ) {
-      my $name = ref($self);
-      $name =~ s/^Music::Tag:://g;
-      print $self->info->tenprint( $name, 'bold white', 12 ), @_, "\n";
-   }
+    my $self = shift;
+    unless ( $self->info->options('quiet') ) {
+        my $name = ref($self);
+        $name =~ s/^Music::Tag:://g;
+        print $self->info->tenprint( $name, 'bold white', 12 ), @_, "\n";
+    }
 }
 
 =item error
@@ -1099,17 +1305,17 @@ Inhereted method to print an error message.
 =cut
 
 sub error {
-   my $self = shift;
-   warn ref($self), " ", @_, "\n";
+    my $self = shift;
+    warn ref($self), " ", @_, "\n";
 }
 
 sub changed {
-   my $self = shift;
-   my $new  = shift;
-   if ( defined $new ) {
-      $self->{changed}++;
-   }
-   return $self->{changed};
+    my $self = shift;
+    my $new  = shift;
+    if ( defined $new ) {
+        $self->{changed}++;
+    }
+    return $self->{changed};
 }
 
 =item options
@@ -1119,14 +1325,14 @@ Returns a hashref of options (or sets options, just like Music::Tag method).
 =cut
 
 sub options {
-   my $self = shift;
-   if ( exists $self->{_options} ) {
-      return $self->{_options}->options(@_);
-   }
-   else {
-      $self->{_options} = MTOptions->new();
-      return $self->{_options}->options(@_);
-   }
+    my $self = shift;
+    if ( exists $self->{_options} ) {
+        return $self->{_options}->options(@_);
+    }
+    else {
+        $self->{_options} = Config::Options->new();
+        return $self->{_options}->options(@_);
+    }
 }
 
 =pod
@@ -1137,7 +1343,10 @@ method should return default options
 
 =cut
 
-sub default_options { { } }
+sub default_options { {} }
+
+sub DESTROY {
+}
 
 1;
 
@@ -1148,109 +1357,5 @@ sub default_options { { } }
 No method for analysing album as a whole, only track-by-track method.
 
 =cut
-
-
-
-# This is just a blessed hash. Meant to be used with methods, or as hash.
-package MTOptions;
-use strict;
-
-our %OPTFILE_CACHE = ();
-
-sub new {
-    my $class = shift;
-    my $self = {};
-    bless $self, $class;
-    $self->options(@_);
-}
-
-sub clone {
-    my $self = shift;
-    my $clone = { %$self }; 
-    bless $clone, ref $self; 
-    return $clone;
-}
-    
-sub options {
-   my $self = shift;
-   my $option = shift;
-   if ( ref $option ) {
-      return $self->merge($option);
-   }
-   elsif ($option) {
-      my $value = shift;
-      if ( defined $value ) {
-         $self->{$option} = $value;
-      }
-      return $self->{$option};
-   }
-   return $self;
-}
-
-sub merge {
-   my $self = shift;
-   my $option = shift;
-   return unless ( ref $option );
-   while (my ($k, $v) = each %{$option}) {
-       $self->{$k} = $v;
-   }
-   return $self;
-}
-
-sub deepmerge {
-   my $self = shift;
-   my $option = shift;
-   return unless ( ref $option );
-   while ( my ($k, $v) = each %{$option} ) {
-      if (exists $self->{$k}) {
-         if (ref $v eq "ARRAY") {
-	    push @{$self->{$k}}, @{$v};
-	 }
-	 elsif ( (ref $v eq "HASH") or (ref $v eq (ref $self)) ) {
-	    while (my ($vk, $vv) = each %{$v}) {
-	       $self->{$k}->{$vk} = $vv;
-	    }
-	 }
-	 else {
-	    $self->{$k} = $v;
-         }
-      }
-      else {
-         $self->{$k} = $v;
-      }
-   }
-   return $self;
-}
-
-sub fromfile_perl {
-   my $self = shift;
-   my $filename = shift || $self->options("optionfile");
-   my $files = [];
-   if (ref $filename eq "ARRAY") {
-      $files = $filename;
-   }
-   else {
-      $files = [ $filename ];
-   }
-   foreach my $f (@{$files}) {
-      if ( exists $OPTFILE_CACHE{$f} ) {
-         $self->options($OPTFILE_CACHE{$f});
-	  }
-	  elsif ( -e $f ) {
-         print STDERR "Loading options from $f\n";
-         local *IN;
-         my $sub = "";
-         open (IN, $f) or die "Couldn't open option file $filename: $!";
-         while (<IN>) {
-            $sub .= $_; 
-         }
-         close (IN);
-		 my $o = eval $sub;
-         if ($@) {die "Can't process options file $: $@"}
-         $self->options($o);
-		 $OPTFILE_CACHE{$f} = $o;
-      }
-   }
-}
 
 1;

@@ -1,22 +1,36 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Music-Tag
-version:      0.2
-version_from: lib/Music/Tag.pm
-installdirs:  site
-requires:
-    Audio::FLAC::Header:           1.4
+--- #YAML:1.0
+name:                Music-Tag
+version:             0.23
+abstract:            Routines to edit tags of sound files
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.36
+distribution_type:   module
+requires:     
+    Audio::FLAC::Header:           1.7
+    Audio::M4P::QuickTime:         0.37
     Cache::Cache:                  1.05
+    Config::Options:               0.01
+    Data::Dumper:                  2
+    Data::UUID:                    1.148
+    Digest::SHA1:                  2.11
+    Encode:                        2.12
+    File::Basename:                2.74
+    File::Spec:                    3.24
     HTML::Parser:                  3.56
-    LWP:                           0.01
-    MP3::Info:                     .9701
-    MP3::Tag:                      0.01
-    MP4::Info:                     0.01
-    Net::Amazon:                   0.01
-    Ogg::Vorbis::Header::PurePerl: 0.01
-    URI::Escape:                   0.01
-    URI::WithBase:                 0.01
-    WebService::MusicBrainz:       0.06
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30
+    Image::Magick:                 6.3
+    IO::File:                      1.13
+    Locale::Country:               2.07
+    LWP:                           5.805
+    MP3::Info:                     1.23
+    MP3::Tag:                      0.9701
+    MP4::Info:                     1.12
+    Net::Amazon:                   0.43
+    Time::HiRes:                   1.9707
+    URI::Escape:                   3.28
+    URI::WithBase:                 2.19
+    WebService::MusicBrainz:       0.07
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Edward Allen (edwardallenthethird@hotmail.com)
