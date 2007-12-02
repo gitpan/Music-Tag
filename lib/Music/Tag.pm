@@ -66,7 +66,7 @@ use Encode;
 use Config::Options;
 use Digest::SHA1;
 use utf8;
-our $VERSION = 0.23;
+our $VERSION = 0.24;
 
 use vars qw($AUTOLOAD);
 

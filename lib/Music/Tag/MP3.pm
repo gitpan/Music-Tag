@@ -169,7 +169,7 @@ title, artist, album, track, totaltracks, year, genre, disc, totaldiscs, label, 
         }
         if (    ( not $self->options->{ignore_apic} )
              && ( $self->{_mp3}->{ID3v2}->get_frame('APIC') ) 
-		     && ( not $self->picture_exists)) {
+		     && ( not $self->info->picture_exists)) {
             $self->info->picture( $self->{_mp3}->{ID3v2}->get_frame('APIC') );
         }
 		if ($self->info->comment =~ /^Amazon.com/i) {
