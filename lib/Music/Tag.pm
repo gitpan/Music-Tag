@@ -66,7 +66,7 @@ use Encode;
 use Config::Options;
 use Digest::SHA1;
 use utf8;
-our $VERSION = 0.24;
+our $VERSION = 0.25;
 
 use vars qw($AUTOLOAD);
 
@@ -109,10 +109,10 @@ Default is false. Setting this to true causes prevents the plugin from giving st
 
 =cut
 
-sub default_options {
-    {  verbose       => 0,
+BEGIN {
+	$Music::Tag::DefaultOptions = Config::Options->new({  verbose       => 0,
        quiet         => 0,
-       ANSIColor     => 1,
+       ANSIColor     => 0,
        LevenshteinXS => 1,
        Levenshtein   => 1,
        Unaccent      => 1,
@@ -120,7 +120,30 @@ sub default_options {
        Stem          => 0,
        StemLocale    => "en-us",
        optionfile    => [ "/etc/musictag.conf", $ENV{HOME} . "/.musictag.conf" ],
-    };
+    });
+}
+
+sub default_options {
+	my $self = shift;
+	return $Music::Tag::DefaultOptions;
+}
+
+=item LoadOptions
+
+Load options stated in optionfile from file.  Default locations are /etc/musictag.conf and ~/.musictag.conf.
+Can be called as class method or object method.
+
+=cut
+
+sub LoadOptions {
+	my $self = shift;
+	my $optfile = shift;
+	if (ref $self) {
+		return $self->options->fromfile_perl($optfile);
+	}
+	elsif ($self) {
+		return $Music::Tag::DefaultOptions->fromfile_perl($optfile);
+	}
 }
 
 sub new {
@@ -137,11 +160,12 @@ sub new {
     else {
         bless $self, $class;
         $self->{_plugins} = [];
-        $self->options( $self->default_options );
-        $self->options->fromfile_perl();
         $self->options($options);
         $self->filename($filename);
     }
+
+
+
     if ( $self->options->{ANSIColor} ) {
         eval { require Term::ANSIColor; };
         if ($@) {
@@ -187,6 +211,8 @@ sub new {
         }
         Lingua::Stem::set_locale( $self->options->{StemLocale} );
     }
+
+
     if ($plugin) {
         $self->add_plugin( $plugin, $options );
         return $self;
@@ -234,6 +260,9 @@ sub auto_plugin {
         $plugin = "M4A";
     }
     elsif ( $filename =~ /\.m4b$/i ) {
+        $plugin = "M4A";
+    }
+    elsif ( $filename =~ /\.3gp$/i ) {
         $plugin = "M4A";
     }
     elsif ( $filename =~ /\.ogg$/i ) {
@@ -442,13 +471,10 @@ This method is used to access or change the options. When called with no options
 
 sub options {
     my $self = shift;
-    if ( exists $self->{_options} ) {
-        return $self->{_options}->options(@_);
+    unless ( exists $self->{_options} ) {
+		$self->{_options} = Config::Options->new( $self->default_options );
     }
-    else {
-        $self->{_options} = Config::Options->new();
-        return $self->{_options}->options(@_);
-    }
+	return $self->{_options}->options(@_);
 }
 
 sub setfileinfo {
@@ -485,7 +511,7 @@ Returns a list of all data methods supported.
 
 =cut
 
-our @DATAMETHODS = qw(artist album title comment secs duration tracknum year releasedate sortname mb_artistid mb_albumid mb_trackid album_type artist_type lyrics picture url genre disc track discnum totaldiscs totaltracks tempo label encoder frequency bitrate compilation composer copyright rating lastplayed playcount filename asin stereo bytes mtime codec frames framesize vbr appleid recorddate country mip_puid originalartist countrycode artist_start artist_end encoded_by songkey artkey albkey albumid songid artistid path user ipod ipod_location ipod_trackid ipod_dbid disctitle booklet pregap postgap samplecount gaplessdata);
+our @DATAMETHODS = qw(artist album title comment secs duration tracknum year releasedate sortname albumartist albumartist_sortname mb_artistid mb_albumid mb_trackid album_type artist_type lyrics picture url genre disc track discnum totaldiscs totaltracks tempo label encoder frequency bitrate compilation composer copyright rating lastplayed playcount filename asin stereo bytes mtime codec frames framesize vbr appleid recorddate country mip_puid originalartist countrycode artist_start artist_end encoded_by songkey artkey albkey albumid songid artistid path user ipod ipod_location ipod_trackid ipod_dbid disctitle booklet pregap postgap samplecount gaplessdata);
 
 sub datamethods {
 	return \@DATAMETHODS;
@@ -573,6 +599,7 @@ sub _accessor {
 }
 
 =pod
+
 =item album
 
 The title of the release.
@@ -592,6 +619,20 @@ sub albumartist {
     my $new  = shift;
     return $self->_accessor( "albumartist", $new, $self->artist() );
 }
+
+=item albumartist_sortname
+
+The name of the sort-name of the albumartist (e.g. Hersh, Kristin or Throwing Muses, The)
+
+=cut
+
+sub albumartist_sortname {
+    my $self = shift;
+    my $new  = shift;
+    return $self->_accessor( "albumartist_sortname", $new, $self->sortname() );
+}
+
+
 
 =pod
 
@@ -797,6 +838,10 @@ The MusicBrainz database ID for the artist.
 =item mb_trackid
 
 The MusicBrainz database ID for the track.
+
+=item mip_puid
+
+The MusicIP puid for the track.
 
 =item picture
 
@@ -1069,6 +1114,7 @@ sub AUTOLOAD {
 sub DESTROY {
 }
 
+
 1;
 
 package Music::Tag::Generic;
@@ -1095,7 +1141,6 @@ sub new {
     my $self    = {};
     bless $self, $class;
     $self->info($parent);
-    $self->options( $self->default_options );
     $self->options($options);
     return $self;
 }
@@ -1326,13 +1371,10 @@ Returns a hashref of options (or sets options, just like Music::Tag method).
 
 sub options {
     my $self = shift;
-    if ( exists $self->{_options} ) {
-        return $self->{_options}->options(@_);
+    unless ( exists $self->{_options} ) {
+        $self->{_options} = Config::Options->new( $self->default_options );
     }
-    else {
-        $self->{_options} = Config::Options->new();
-        return $self->{_options}->options(@_);
-    }
+	return $self->{_options}->options(@_);
 }
 
 =pod
@@ -1354,7 +1396,30 @@ sub DESTROY {
 
 =head1 BUGS
 
-No method for analysing album as a whole, only track-by-track method.
+No method for analysing album as a whole, only track-by-track method.  Several plugins
+do not support all tags.  Has not been tested in a threaded environment.
+
+=head1 SEE ALSO INCLUDED
+
+L<Music::Tag::Amazon>, L<Music::Tag::File>, L<Music::Tag::FLAC>, L<Music::Tag::Lyrics>,
+L<Music::Tag::M4A>, L<Music::Tag::MP3>, L<Music::Tag::MusicBrainz>, L<Music::Tag::OGG>, L<Music::Tag::Option>
+
+=head1 SEE ALSO
+
+L<Term::ANSIColor>, L<Text::LevenshteinXS>, L<Text::Unaccent>, L<Lingua::EN::Inflect>, L<Lingua::Stem>
+
+=head1 AUTHOR 
+
+Edward Allen III <ealleniii _at_ cpan _dot_ org>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2007 Edward Allen III. All rights reserved.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the Artistic License, distributed
+with Perl.
+
 
 =cut
 

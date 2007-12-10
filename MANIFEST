@@ -1,9 +1,4 @@
-bin/autotag
 bin/musictag
-bin/musicinfo
-bin/musicsort
-bin/quicktag
-bin/safetag
 lib/Music/Tag.pm
 lib/Music/Tag/Amazon.pm
 lib/Music/Tag/File.pm
@@ -14,7 +9,17 @@ lib/Music/Tag/MP3.pm
 lib/Music/Tag/MusicBrainz.pm
 lib/Music/Tag/OGG.pm
 lib/Music/Tag/Option.pm
+t/elise.flac
+t/elise.m4a
+t/elise.mp3
+t/elise.ogg
+t/flac.t
+t/mp3.t
+t/ogg.t
 Makefile.PL
 MANIFEST
 README
+Changes
+patches/MP3-Tag-0.9709.ID3v2.4.patch
+t/options.conf
 META.yml                                 Module meta-data (added by MakeMaker)

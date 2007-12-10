@@ -1,5 +1,5 @@
 package Music::Tag::Lyrics;
-our $VERSION = 0.19;
+our $VERSION = 0.25;
 
 # Copyright (c) 2007 Edward Allen III. All rights reserved.
 #
@@ -8,15 +8,51 @@ our $VERSION = 0.19;
 ## with Perl.
 #
 
+=pod
+
+=head1 NAME
+
+Music::Tag::Lyrics - Screen Scraping plugin for downloading lyrics from the web.  
+
+=head1 SYNOPSIS
+
+use Music::Lyrics
+
+my $info = Music::Tag->new($filename, { quiet => 1 });
+$info->add_plugin("Lyrics");
+$info->get_info();
+   
+print "Lyrics are ", $info->lyrics;
+
+=head1 DESCRIPTION
+
+Music::Tag::Lyrics is a screen scraper which supports a few lyrics sites to gather lyrics from.  Please note that lyrics
+are copyright'd material and downloading them from these sites should only be done for personal use, and never if the 
+artist has expressed his/her/their desire to not publize their lyrics.
+
+Artist, Album, and Title are required to be set before using this plugin.
+
+=over 4
+
+=head1 SET VALUES
+
+=item lyrics
+
+=cut
+
 use strict;
 
 #use Music::Tag::Rget;
 use URI::WithBase;
-use File::Basename;
+use File::Spec;
 use URI::Escape qw(uri_escape uri_escape_utf8);
 use Encode;
 use XML::Simple;
 our @ISA = qw(Music::Tag::Generic);
+
+sub _default_options {
+	'lyrics_path' => "/mnt/media/music/Lyrics/"
+}
 
 sub url_escape {
     my $in = shift;
@@ -38,15 +74,39 @@ sub get_tag {
     else {
         my $lyrics;
 
+=pod
+
+=head1 LYRICS SOURCES
+
+=item filename
+
+Looks for $filename.txt
+
+=cut
+
+
         unless ($lyrics) {
             $self->status("Checking for filename...");
             $lyrics = $self->get_lyrics_from_file( $self->info->filename );
         }
+
+=pod
+
+=item wearethelyrics.com
+
+=cut
+
 		unless ($lyrics) {
 			$self->status("Checking WeAreThelyrics Lyrics...");
             $lyrics =
               $self->get_lyrics_watl( $self->info->artist, $self->info->title, $self->info->album );
 		}
+
+=pod
+
+=item www.uppercutmusic.com
+
+=cut
 
         unless ($lyrics) {
             $self->status("Checking UC Lyrics...");
@@ -54,16 +114,36 @@ sub get_tag {
               $self->get_lyrics_uc( $self->info->artist, $self->info->title, $self->info->album );
         }
 
+=pod
+
+=item www.houseoflyrics.com
+
+=cut
+
         unless ($lyrics) {
             $self->status("Checking HOL Lyrics...");
             $lyrics =
               $self->get_lyrics_hol( $self->info->artist, $self->info->title, $self->info->album );
         }
+
+=pod
+
+=item leoslyrics.com
+
+=cut
+
         unless ($lyrics) {
             $self->status("Checking Leos Lyrics...");
             $lyrics =
               $self->get_lyrics_leos( $self->info->artist, $self->info->title, $self->info->album );
         }
+
+=pod
+
+=item lyricsmania.com
+
+=cut
+
 	    unless ($lyrics) {
 	        $self->status("Checking Lyricsmania Lyrics...\n");
 	        $lyrics = $self->get_lyrics_mania( $self->info->artist, $self->info->title, $self->info->album );
@@ -266,6 +346,18 @@ sub get_lyrics_mania_song {
     }
 }
 
+sub basename {
+	my $file = shift;
+	my ($vol, $dir, $base) = File::Spec->splitpath($file);
+	return $base;
+}
+
+sub dirname {
+	my $file = shift;
+	my ($vol, $dir, $base) = File::Spec->splitpath($file);
+	return File::Spec->catpath($vol, $dir);
+}
+
 sub get_lyrics_from_file {
     my $self     = shift;
     my $filename = shift;
@@ -273,8 +365,8 @@ sub get_lyrics_from_file {
     if ( -e $filename . ".txt " ) {
         $in = $filename . ".txt";
     }
-    elsif ( -e "/mnt/media/music/Lyrics/" . basename($filename) . ".txt" ) {
-        $in = "/mnt/media/music/Lyrics/" . basename($filename) . ".txt";
+    elsif ( -e $self->options->{lyrics_path} . basename($filename) . ".txt" ) {
+        $in =  File::Spec->catdir($self->options->{lyrics_path}, basename($filename) . ".txt");
     }
     if ($in) {
         if ( open( IN, $in ) ) {
@@ -1165,13 +1257,47 @@ sub AUTOLOAD {
     return $self->{ lc($attr) };
 }
 
+=pod
+
+=head1 OPTIONS
+
+=item lyrics_path
+
+Path to folder containing lyrics text files.
+
+=head1 BUGS
+
+This method is always unreliable unless great care is taken in file naming. 
+
+=head1 SEE ALSO INCLUDED
+
+L<Music::Tag>, L<Music::Tag::Amazon>, L<Music::Tag::File>, L<Music::Tag::FLAC>, 
+L<Music::Tag::M4A>, L<Music::Tag::MP3>, L<Music::Tag::MusicBrainz>, L<Music::Tag::OGG>, L<Music::Tag::Option>
+
+=head1 AUTHOR 
+
+Edward Allen III <ealleniii _at_ cpan _dot_ org>
+
+
+=head1 COPYRIGHT
+
+Copyright (c) 2007 Edward Allen III. All rights reserved.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the Artistic License, distributed
+with Perl.
+
+
+=cut
+
+
 1;
 
 package Music::Tag::Auto::Rget::File;
 use strict;
 use vars qw($AUTOLOAD);
 use IO::File;
-use File::Basename;
+use File::Spec;
 
 sub new {
     my $class = shift;
@@ -1179,6 +1305,18 @@ sub new {
     bless $self, $class;
     $self->{filename} = shift;
     return $self;
+}
+
+sub basename {
+	my $file = shift;
+	my ($vol, $dir, $base) = File::Spec->splitpath($file);
+	return $base;
+}
+
+sub dirname {
+	my $file = shift;
+	my ($vol, $dir, $base) = File::Spec->splitpath($file);
+	return File::Spec->catpath($vol, $dir);
 }
 
 sub open {

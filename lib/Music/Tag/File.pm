@@ -1,5 +1,5 @@
 package Music::Tag::File;
-our $VERSION = 0.19;
+our $VERSION = 0.25;
 
 # Copyright (c) 2007 Edward Allen III. All rights reserved.
 #
@@ -7,12 +7,82 @@ our $VERSION = 0.19;
 ## modify it under the terms of the Artistic License, distributed
 ## with Perl.
 #
+
+=pod
+
+=head1 NAME
+
+Music::Tag::File - Plugin module for Music::Tag to get information from filename and directory entries. 
+
+=head1 SYNOPSIS
+
+use Music::Tag
+
+my $filename = "/var/lib/music/artist/album/track.mp3";
+
+my $info = Music::Tag->new($filename, { quiet => 1 });
+
+$info->add_plugin("File");
+$info->get_info();
+   
+# Following prints "artist"
+print "Artist is ", $info->artist;
+
+
+=head1 DESCRIPTION
+
+Music::Tag::File is used to guess information about a music file from its filename, directory name, or contents of the directory it resides in.
+
+No values are required (except filename, which is usually provided on object creation). 
+
+This plugin will not overwrite values found by other plugins.
+
+=over 4
+
+=head1 SET VALUES
+
+=cut
+
 use strict;
-use MP3::Tag;
 use File::Spec;
 
 #use Image::Magick;
 our @ISA = qw(Music::Tag::Generic);
+
+=item album
+
+Derived from directory file is in.
+
+=item aritst
+
+Derived from parent directory of directory file is in.
+
+=item tracknum
+
+Derived from first number(s) found in file.
+
+=item track
+
+From file with initial numbers removed.
+
+=item disc
+
+Set to 1 of 1 if no value set.
+
+=item picture
+
+Looks for folder.png, folder.jpg, or cover.jpg
+
+=item lyrics
+
+Looks for file of same name as filename with .txt extension.
+
+=item booklet
+
+Looks for any pdf file
+
+=cut
+
 
 sub get_tag {
     my $self     = shift;
@@ -236,6 +306,44 @@ sub set_tag {
     }
     return $self;
 }
+
+=pod
+
+=head1 OPTIONS
+
+=item lyricsoverwrite
+
+If true will overwrite lyrics with values found by plugin.
+
+=item coveroverwrite
+
+If true will overwrite picture with values found by plugin.
+
+=pod
+
+=head1 BUGS
+
+This method is always unreliable unless great care is taken in file naming. 
+
+=head1 SEE ALSO
+
+L<Music::Tag>, L<Music::Tag::Amazon>, L<Music::Tag::FLAC>, L<Music::Tag::Lyrics>,
+L<Music::Tag::M4A>, L<Music::Tag::MP3>, L<Music::Tag::MusicBrainz>, L<Music::Tag::OGG>, L<Music::Tag::Option>,
+
+=head1 AUTHOR 
+
+Edward Allen III <ealleniii _at_ cpan _dot_ org>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2007 Edward Allen III. All rights reserved.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the Artistic License, distributed
+with Perl.
+
+
+=cut
 
 1;
 

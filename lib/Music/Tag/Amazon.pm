@@ -1,5 +1,5 @@
 package Music::Tag::Amazon;
-our $VERSION = 0.20;
+our $VERSION = 0.25;
 use Data::Dumper;
 
 # Copyright (c) 2007 Edward Allen III. All rights reserved.
@@ -159,6 +159,11 @@ A cache object. Used to store coverart in.  A Cache::FileCache object by default
 =item min_album_points
 
 Minimum number of points an album must have to win election. Default 10.
+
+=item locale
+
+Locale code for store to use.  Valid are ca, de, fr, jp, uk or us as of now.  Maybe more...
+
 
 =head1 METHODS
 
@@ -537,6 +542,29 @@ sub _tracks_by_name {
 
 =head1 BUGS
 
-Does not do well with artist who have over 50 releases. Amazon sorts by most popular.
+Does not do well with artist who have over 50 releases. Amazon sorts by most popular.  
 
+Multi Disc / Volume sets seem to be working now, but support is still questionable.
 
+=head1 SEE ALSO INCLUDED
+
+L<Music::Tag>, L<Music::Tag::File>, L<Music::Tag::FLAC>, L<Music::Tag::Lyrics>,
+L<Music::Tag::M4A>, L<Music::Tag::MP3>, L<Music::Tag::MusicBrainz>, L<Music::Tag::OGG>, L<Music::Tag::Option>
+
+=head1 SEE ALSO
+
+L<Net::Amazon>
+
+=head1 AUTHOR 
+
+Edward Allen III <ealleniii _at_ cpan _dot_ org>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2007 Edward Allen III. All rights reserved.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the Artistic License, distributed
+with Perl.
+
+=cut

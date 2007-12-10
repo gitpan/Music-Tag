@@ -1,5 +1,5 @@
 package Music::Tag::MusicBrainz;
-our $VERSION = 0.19;
+our $VERSION = 0.25;
 
 # Copyright (c) 2006 Edward Allen III. All rights reserved.
 #
@@ -551,5 +551,84 @@ sub track_info {
         $self->tagchange("releasedate");
     }
 }
+
+=pod
+
+=head1 OPTIONS
+
+=item prefered_country
+
+If multiple release countries are available, prefer this one. Default is 'US'.
+
+=item min_artist_score
+
+Minimum artist score for a match.  Default is 1.
+
+=item min_album_score
+
+Minimum album score for a mach.  Default is 17.  Raise if you get too many false positives.
+
+=item min_track_score.
+
+Minimum track score.  Default is 3.
+
+=item ignore_mbid
+
+If set, will ignore any MusicBrainz ID values found.
+
+=item trust_time
+
+If set, will give high priority to track duration in matching
+
+=item trust_track
+
+If set, will give high priority to track number in matching
+
+=item trust_title
+
+If set, will give high priority to title in matching.
+
+=item skip_seen
+
+If set, will not perform a MusicBrainz lookup if an mb_trackid is set.
+
+=item ignore_multidisc_warning
+
+If set, will enable use of MusicBrainz standards to get disc numbers.
+
+=item mb_host
+
+Set to host for musicbrainz.  Default is www.musicbrainz.org.
+
+=head1 BUGS
+
+Sometimes will grab incorrect info. This is due to the lack of album level view when repairing tags.
+
+=head1 SEE ALSO INCLUDED
+
+L<Music::Tag>, L<Music::Tag::Amazon>, L<Music::Tag::File>, L<Music::Tag::FLAC>, L<Music::Tag::Lyrics>,
+L<Music::Tag::M4A>, L<Music::Tag::MP3>, L<Music::Tag::OGG>, L<Music::Tag::Option>
+
+=head1 SEE ALSO
+
+L<WebService::MusicBrainz>
+
+
+=head1 AUTHOR 
+
+Edward Allen III <ealleniii _at_ cpan _dot_ org>
+
+
+=head1 COPYRIGHT
+
+Copyright (c) 2007 Edward Allen III. All rights reserved.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the Artistic License, distributed
+with Perl.
+
+
+=cut
+
 
 1;

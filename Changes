@@ -1,0 +1,14 @@
+.25
+* Support many more tags for flac, ogg, and m4a
+* Removed autotag safetag quicktag musictag musicsort musicinfo scripts.  All is done by musictag now.
+* Added tests for some plugins.  More to do!
+* Bug Fixes
+* Documentation improvments
+* Added preset option for musictag 
+
+.24
+* Bug Fixes
+* Revised MP3 Tags to read Picard tags
+
+.23
+* Initial Public Release
