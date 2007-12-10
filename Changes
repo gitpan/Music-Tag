@@ -1,3 +1,7 @@
+.26
+* Removed several prerequistes that weren't used
+* Fixed error in README about prerequisite.
+
 .25
 * Support many more tags for flac, ogg, and m4a
 * Removed autotag safetag quicktag musictag musicsort musicinfo scripts.  All is done by musictag now.

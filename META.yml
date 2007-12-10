@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:                Music-Tag
-version:             0.25
-abstract:            Routines to edit tags of sound files
+version:             0.26
+abstract:            Routines to edit metadata for music files
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.36
 distribution_type:   module
@@ -11,13 +11,9 @@ requires:
     Cache::Cache:                  1.05
     Config::Options:               0.01
     Data::Dumper:                  2
-    Data::UUID:                    1.148
     Digest::SHA1:                  2.11
     Encode:                        2.12
-    File::Basename:                2.74
     File::Spec:                    3.24
-    HTML::Parser:                  3.56
-    Image::Magick:                 6.3
     IO::File:                      1.13
     Locale::Country:               2.07
     LWP:                           5.805
@@ -34,4 +30,4 @@ meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.2.html
     version: 1.2
 author:
-    - Edward Allen (edwardallenthethird@hotmail.com)
+    - Edward Allen (ealleniii _at_ cpan _dot_ org)

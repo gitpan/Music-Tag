@@ -1,4 +1,4 @@
-Music-Tag version 0.23
+Music-Tag version 0.26
 ============================
 
 Extendable module for working with Music Tags. Is powered by various
@@ -53,16 +53,14 @@ This module requires these other modules and libraries:
 
    Audio::FLAC::Header
    Cache::FileCache
-   Data::UUID
    Encode
    File::Spec
    HTML::Entities
-   Image::Magick
    LWP
    MP3::Tag
    MP4::Info
    Net::Amazon
-   Ogg::Vorbis::Header::PurePerl
+   Ogg::Vorbis::Header
    URI::Escape
    URI::WithBase
    WebService::MusicBrainz

@@ -7,7 +7,9 @@ use Term::ANSIColor;
 use Data::Dumper;
 use Config::Options;
 use Pod::Usage;
+eval {
 use Music::Tag::OGG;  # Workaround to get INLINE code loaded right in Ogg::Vorbis::Header
+};
 
 our $options = Config::Options->new();
 our $BASENAME = "musictag";

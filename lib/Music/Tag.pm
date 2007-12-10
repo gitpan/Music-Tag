@@ -1,5 +1,5 @@
 package Music::Tag;
-
+our $VERSION = 0.26;
 # Copyright (c) 2007 Edward Allen III. All rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
@@ -66,7 +66,6 @@ use Encode;
 use Config::Options;
 use Digest::SHA1;
 use utf8;
-our $VERSION = 0.25;
 
 use vars qw($AUTOLOAD);
 
