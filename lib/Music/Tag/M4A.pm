@@ -1,7 +1,7 @@
 package Music::Tag::M4A;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,15 +16,15 @@ Music::Tag::M4A - Plugin module for Music::Tag to get information from Apple Qui
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $filename = "/var/lib/music/artist/album/track.m4a";
+	my $filename = "/var/lib/music/artist/album/track.m4a";
 
-my $info = Music::Tag->new($filename, { quiet => 1 }, "M4A");
+	my $info = Music::Tag->new($filename, { quiet => 1 }, "M4A");
 
-$info->get_info();
-   
-print "Artist is ", $info->artist;
+	$info->get_info();
+	   
+	print "Artist is ", $info->artist;
 
 =head1 DESCRIPTION
 
@@ -33,9 +33,9 @@ Music::Tag::M4A is used to read  header information from QuickTime MP4 contonain
 It is not currently able to write M4A tags.  Audio::M4P::QuickTime can write these tags, but iTunes has trouble reading them after
 they have been writen.  Setting the option "write_m4a" will enable some tags to be writen, but iTunes will have problems!
 
-No values are required (except filename, which is usually provided on object creation). You normally read information from Music:Tag::M4P first.
+=head1 REQUIRED VALUES
 
-=over 4
+No values are required (except filename, which is usually provided on object creation).
 
 =head1 SET VALUES
 
@@ -71,6 +71,8 @@ sub get_tag_qt_info {
 	$date =~ s/T.*$//;
 
 =pod
+
+=over 4
 
 =item artist, album 
 
@@ -205,13 +207,17 @@ sub close {
 
 }
 
-=pod
+=back
 
 =head1 OPTIONS
+
+=over 4
 
 =item write_m4a
 
 Set to true to allow some tags to be writen to disc.  Not recommended.
+
+=back
 
 =head1 BUGS
 
@@ -233,7 +239,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

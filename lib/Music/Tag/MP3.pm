@@ -1,7 +1,7 @@
 package Music::Tag::MP3;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,22 +16,23 @@ Music::Tag::MP3 - Plugin module for Music::Tag to get information from id3 tags
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $info = Music::Tag->new($filename, { quiet => 1 }, "MP3");
-$info->get_info();
+	my $info = Music::Tag->new($filename, { quiet => 1 }, "MP3");
+	$info->get_info();
    
-print "Artist is ", $info->artist;
+	print "Artist is ", $info->artist;
 
 =head1 DESCRIPTION
 
 Music::Tag::MP3 is used to read id3 tag information. It uses MP3::Tag to read id3v2 and id3 tags from mp3 files. As such, it's limitations are the same as MP3::Tag. It does not write id3v2.4 tags, causing it to have some trouble with unicode.
 
-No values are required (except filename, which is usually provided on object creation). You normally read information from Music:Tag::MP3 first.
+=head1 REQUIRED VALUES
 
-=over 4
+No values are required (except filename, which is usually provided on object creation).
 
 =head1 SET VALUES
+
 
 =cut
 
@@ -79,7 +80,7 @@ sub get_tag {
     return unless $self->mp3;
     $self->mp3->get_tags;
 
-=pod
+=over 4
 
 =item mp3 file info added:
 
@@ -100,8 +101,6 @@ sub get_tag {
     $self->info->frames( $self->mp3->frames() );
     $self->info->framesize( $self->mp3->frame_len() );
     $self->info->vbr( $self->mp3->is_vbr() );
-
-=pod
 
 =item id3v1 tag info added:
 
@@ -149,14 +148,18 @@ title, artist, album, track, totaltracks, year, genre, disc, totaldiscs, label, 
 
         my $day = $self->mp3->{ID3v2}->get_frame('TDAT') || "";
         if ( ( $day =~ /(\d\d)(\d\d)/ ) && ( $self->info->year ) ) {
-            $self->info->releasedate( $self->info->year . "-" . $1 . "-" . $2 );
+			my $releasedate = $self->info->year . "-" . $1 . "-" . $2 ;
+			my $time = $self->mp3->{ID3v2}->get_frame('TIME') || "";
+			if ($time =~ /(\d\d)(\d\d)/) {
+				$releasedate .= " ". $1 . ":" . $2;
+			}
+            $self->info->releasetime($releasedate); 
         }
 
         my $mbid = $self->mp3->{ID3v2}->get_frame('UFID');
 		if (ref $mbid) {
          $self->info->mb_trackid($mbid->{_Data}); 
 	    }
-
         my $lyrics = $self->mp3->{ID3v2}->get_frame('USLT');
         if ( ref $lyrics ) {
             $self->info->lyrics( $lyrics->{Text} );
@@ -377,10 +380,13 @@ sub set_tag {
     $id3v2->remove_frame('USLT');
     $id3v2->add_frame( 'USLT', 0, "ENG", "Lyrics", $self->info->lyrics );
 
-    if (($self->info->releasedate) && ( $self->info->releasedate =~ /(\d\d\d\d)-(\d\d)-(\d\d)/ )) {
-        my $day = "$2$3";
+    if (($self->info->releasedate) && ( $self->info->releasetime =~ /(\d\d\d\d)-?(\d\d)?-?(\d\d)? ?(\d\d)?:?(\d\d)?/ )) {
+		my $day = sprintf("%02d%02d", $2 || 0, $3 || 0);
+		my $time = sprintf("%02d%02d", $4 || 0, $5 || 0);
         $id3v2->remove_frame('TDAT');
         $id3v2->add_frame( 'TDAT', 0, $day );
+        $id3v2->remove_frame('TIME');
+        $id3v2->add_frame( 'TIME', 0, $time );
     }
     unless ( $self->options->{ignore_apic} ) {
         $id3v2->remove_frame('APIC');
@@ -446,9 +452,11 @@ sub url_encode {
     return ($url);
 }
 
-=pod
+=back
 
 =head1 OPTIONS
+
+=over 4
 
 =item apic_cover
 
@@ -457,6 +465,8 @@ Set to false to disable writing picture to tag.  True by default.
 =item ignore_apic
 
 Ignore embeded picture.
+
+=back
 
 =head1 BUGS
 
@@ -478,7 +488,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

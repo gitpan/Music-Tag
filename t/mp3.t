@@ -3,7 +3,7 @@ use strict;
 
 use Test::More tests => 15;
 use File::Copy;
-use 5.0061;
+use 5.006;
 
 BEGIN { use_ok('Music::Tag') }
 

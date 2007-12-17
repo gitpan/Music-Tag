@@ -22,4 +22,8 @@ README
 Changes
 patches/MP3-Tag-0.9709.ID3v2.4.patch
 t/options.conf
+t/musicbrainz.t
+t/amazon.t
+t/pod.t
+sample/default.conf
 META.yml                                 Module meta-data (added by MakeMaker)

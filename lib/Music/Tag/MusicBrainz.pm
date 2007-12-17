@@ -1,7 +1,7 @@
 package Music::Tag::MusicBrainz;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2006 Edward Allen III. All rights reserved.
+# Copyright (c) 2006 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,27 +16,30 @@ Music::Tag::MusicBrainz - Plugin module for Music::Tag to get information from M
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $info = Music::Tag->new($filename);
+	my $info = Music::Tag->new($filename);
    
-my $plugin = $info->add_plugin("MusicBrainz");
-$plugin->get_tag;
+	my $plugin = $info->add_plugin("MusicBrainz");
+	$plugin->get_tag;
 
-print "Record Label is ", $info->label();
+	print "Music Tag Track ID ", $info->mb_trackid();
 
 =head1 DESCRIPTION
 
 Music::Tag::MusicBrainz is normally created in Music::Tag. This plugin gathers additional information about a track from amazon, and updates the tag object.
 
+=head1 REQUIRED VALUES
 
 =over 4
 
-=head1 REQUIRED VALUES
-
 =item artist
 
+=back
+
 =head1 USED VALUES
+
+=over 4
 
 =item album
 
@@ -58,8 +61,11 @@ title is used only if track is not true, or if trust_title option is set.
 
 tracknum is used only if title is not true, or if trust_track option is set.
 
+=back
 
 =head1 SET VALUES
+
+=over 4
 
 =item album
 
@@ -136,16 +142,16 @@ sub artist_info {
         return unless $response->artist_list();
         foreach ( @{ $response->artist_list->artists() } ) {
             my $s = 0;
-            if ( $self->info->artist eq $_->{name} ) {
+            if (($self->info->artist) && ($_->{name}) && ( $self->info->artist eq $_->{name} )) {
                 $s += 16;
             }
-            elsif ( $self->info->artist eq $_->{sortname} ) {
+            elsif (($self->info->artist) && ($_->{sortname}) && ($self->info->artist eq $_->{sortname} )) {
                 $s += 8;
             }
-            elsif ( $self->info->mb_artistid eq $_->{id} ) {
+            elsif (($self->info->mb_artistid) && ($_->{id}) &&  ($self->info->mb_artistid eq $_->{id} )) {
                 $s += 4;
             }
-            elsif ( $self->simple_compare( $self->info->artist, $_->{name}, .90 ) ) {
+            elsif (($self->info->artist) && ($_->{name}) &&  ($self->simple_compare( $self->info->artist, $_->{name}, .90 )) ) {
                 $s += 2;
             }
             if ( $s > $maxscore ) {
@@ -280,7 +286,7 @@ sub album_info {
             if ( $title eq $self->info->album ) {
                 $s += 64;
             }
-            if ( ( length( $_->{asin} ) > 8 ) && ( $_->{asin} eq $self->info->asin ) ) {
+            if ( ($_->{asin}) && ($self->info->asin) && ( length( $_->{asin} ) > 8 ) && ( $_->{asin} eq $self->info->asin ) ) {
                 $s += 32;
             }
             if ( $self->simple_compare( $title, $self->info->album, .80 ) ) {
@@ -374,7 +380,7 @@ sub album_info {
 
 sub track_info {
     my $self = shift;
-    if (    ( ( $self->info->totaldiscs > 1 ) or ( $self->info->disc > 1 ) )
+    if (    ( ($self->info->totaldiscs && $self->info->totaldiscs > 1 ) or ( $self->info->disc && $self->info->disc > 1 ) )
          && ( not $self->options->{ignore_multidisc_warning} ) ) {
         $self->status(
             "Warning! Multi-Disc item. MusicBrainz is not reliable for this. Will not change track name or number."
@@ -470,7 +476,7 @@ sub track_info {
         }
         $tracknum++;
     }
-    if ( $maxscore > $self->{min_track_score} ) {
+    if (($maxscore) && ( $maxscore > $self->options->{min_track_score} )) {
         $self->status( "Awarding highest score of " . $maxscore . " to " . $track->title );
     }
     elsif ($maxscore) {
@@ -484,7 +490,7 @@ sub track_info {
         $self->status("No match for track, skipping track info.");
         return;
     }
-    unless (    ( ( $self->info->totaldiscs > 1 ) or ( $self->info->disc > 1 ) )
+    unless (    ( ( $self->info->totaldiscs && $self->info->totaldiscs > 1 ) or ( $self->info->disc && $self->info->disc > 1 ) )
              && ( not $self->options->{ignore_multidisc_warning} ) ) {
         if ( $track->title ) {
             unless (     ( defined $self->info->title )
@@ -516,7 +522,7 @@ sub track_info {
         $maxscore = 0;
         foreach ( @{$releases} ) {
             my $score = 0;
-            if ( $_->date eq $self->info->releasedate ) {
+            if (($_->date) && ($self->info->releasedate) && ( $_->date eq $self->info->releasedate )) {
                 $score += 4;
             }
             elsif ( $_->country eq $self->options->{prefered_country} ) {
@@ -552,9 +558,11 @@ sub track_info {
     }
 }
 
-=pod
+=back
 
 =head1 OPTIONS
+
+=over 4
 
 =item prefered_country
 
@@ -600,6 +608,8 @@ If set, will enable use of MusicBrainz standards to get disc numbers.
 
 Set to host for musicbrainz.  Default is www.musicbrainz.org.
 
+=back
+
 =head1 BUGS
 
 Sometimes will grab incorrect info. This is due to the lack of album level view when repairing tags.
@@ -621,7 +631,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

@@ -1,6 +1,6 @@
 package Music::Tag;
-our $VERSION = 0.26;
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+our $VERSION = 0.27;
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -15,9 +15,9 @@ Music::Tag - Module for collecting information about music files.
 
 =head1 SYNOPSIS
 
-use Music::Tag;
+	use Music::Tag;
 
-my $info = Music::Tag->new($filename);
+	my $info = Music::Tag->new($filename);
    
 # Read basic info
 
@@ -28,6 +28,7 @@ print "Album is ", $info->album();
 print "Release Date is ", $info->releasedate();
 
 # Change info
+
    
 $info->artist('Throwing Muses');
 $info->album('University');
@@ -67,13 +68,13 @@ use Config::Options;
 use Digest::SHA1;
 use utf8;
 
-use vars qw($AUTOLOAD);
+use vars qw($AUTOLOAD %DataMethods);
 
 =pod
 
-=over 4
-
 =head1 METHODS
+
+=over 4
 
 =item new()
 
@@ -82,12 +83,12 @@ my $info = Music::Tag->new($filename, [ $options ], [ "PLUGIN" ] ) ;
 Takes a filename, a hashref of options, and an optonal first plugin and returns a new Music::Tag object. 
 
 If no plugin is listed, then it will automatically add the appropriate file plugin based
-on the extension. If it can't do that, it will return undef. Please note that when a plugin
-is added, the plugin's get_tag method is immediatly called. If you are the kind of person who
+on the extension. If it can't do that, it will return undef. If you are the kind of person who
 uses ID3v2 and ID3v1 tags for everything, then use "MP3" as an option here to prevent it from
 trying to use iTunes tags for you .m4a files.
  
-Options are global (apply to all plugins) and default (can be overridden).
+Options are global (apply to all plugins) and default (can be overridden by a plugin).
+
 Plugin specific options can be applied here, if you wish. They will be ignored by
 plugins that don't know what to do with them. See the POD for each plugins for more
 details on options a particular plugin accepts.
@@ -104,6 +105,26 @@ Default is false. Setting this to true causes plugin to generate a lot of noise.
 
 Default is false. Setting this to true causes prevents the plugin from giving status messages.
 
+=item ANSIColor
+
+Set to true to enable color status messages.
+
+=item LevenshteinXS
+
+Set to true to use Text::LevenshteinXS to allow approximate matching with Amazon and MusicBrainz Plugins.
+
+=item Levenshtein
+
+Same as LevenshteinXS, but with Text::Levenshtein.
+
+=item TimeLocal
+
+Attempt to use Time::Local to support unix release date tags.
+
+=item Unaccent
+
+Set to true to allow accent-neutral matching with Text::Unaccent.
+
 =back
 
 =cut
@@ -114,12 +135,16 @@ BEGIN {
        ANSIColor     => 0,
        LevenshteinXS => 1,
        Levenshtein   => 1,
+	   TimeLocal	 => 1,
        Unaccent      => 1,
-       Inflect       => 1,
+       Inflect       => 0,
        Stem          => 0,
        StemLocale    => "en-us",
        optionfile    => [ "/etc/musictag.conf", $ENV{HOME} . "/.musictag.conf" ],
     });
+    my @datamethods = qw(albkey album album_type albumartist albumartist_sortname albumid appleid artist artist_end artist_start artist_type artistid artkey asin bitrate booklet bytes codec comment compilation composer copyright country countrycode disc discnum disctitle duration encoded_by encoder filename frames framesize frequency gaplessdata genre ipod ipod_dbid ipod_location ipod_trackid label lastplayed lyrics mb_albumid mb_artistid mb_trackid mip_puid mtime originalartist path picture playcount postgap pregap rating recorddate recordtime releasedate releasetime samplecount secs songid songkey sortname stereo tempo title totaldiscs totaltracks track tracknum url user vbr year);  
+	%Music::Tag::DataMethods = map { $_ => 1 } @datamethods;
+
 }
 
 sub default_options {
@@ -127,7 +152,7 @@ sub default_options {
 	return $Music::Tag::DefaultOptions;
 }
 
-=item LoadOptions
+=item LoadOptions()
 
 Load options stated in optionfile from file.  Default locations are /etc/musictag.conf and ~/.musictag.conf.
 Can be called as class method or object method.
@@ -210,6 +235,13 @@ sub new {
         }
         Lingua::Stem::set_locale( $self->options->{StemLocale} );
     }
+    if ( $self->options->{TimeLocal} ) {
+        eval { require Time::Local; };
+        if ($@) {
+            warn "Couldn't load Time::Local $@\n";
+            $self->options->{TimeLocal} = 0;
+        }
+    }
 
 
     if ($plugin) {
@@ -232,7 +264,7 @@ Takes a plugin name and optional set of options and it to a the Music::Tag objec
 
 $options is a hashref that can be used to override the global options for a plugin.
 
-Current plugins include L<MP3|Music::Tag::MP3>, L<OGG|Music::Tag::OGG>, L<FLAC|Music::Tag::FLAC>, L<M4A|Music::Tag::M4A>, L<Amazon|Music::Tag::Amazon>, L<File|Music::Tag::File>, and L<MusicBrainz|Music::Tag::MusicBrainz>. Additional plugins can be created. See <L/Plugin Syntax> for information.
+Current plugins include L<MP3|Music::Tag::MP3>, L<OGG|Music::Tag::OGG>, L<FLAC|Music::Tag::FLAC>, L<M4A|Music::Tag::M4A>, L<Amazon|Music::Tag::Amazon>, L<File|Music::Tag::File>, and L<MusicBrainz|Music::Tag::MusicBrainz>. Additional plugins can be created. See <L:Plugin Syntax> for information.
 
 First option can be an string such as "MP3" in which case Music::Tag::MP3->new($self, $options) is called,an object name such as "Music::Tag::Custom::MyPlugin" in which case Music::Tag::MP3->new($self, $options) is called. It can also be an object.
 
@@ -417,7 +449,7 @@ sub strip_tag {
 
 $info->close();
 
-closes active filehandles on all plugins. Should be called before object destroyed.
+closes active filehandles on all plugins. Should be called before object destroyed or frozen.
 
 =cut
 
@@ -485,6 +517,13 @@ sub setfileinfo {
 	}
 }
 
+=item sha1()
+
+Returns a sha1 digest of the first 16K of the music file.  
+
+=cut
+
+
 sub sha1 {
    my $self = shift;
    return unless (($self->filename) && (-e $self->filename ));
@@ -506,19 +545,25 @@ sub sha1 {
 
 =item datamethods()
 
-Returns a list of all data methods supported.
+Returns an array reference of all data methods supported.  Optionally takes a method which is added.  Data methods should be all lower case and not conflict with existing methods. Datamethod additions are global, and not tied to an object. Array reference should be considered read only.  
 
 =cut
 
-our @DATAMETHODS = qw(artist album title comment secs duration tracknum year releasedate sortname albumartist albumartist_sortname mb_artistid mb_albumid mb_trackid album_type artist_type lyrics picture url genre disc track discnum totaldiscs totaltracks tempo label encoder frequency bitrate compilation composer copyright rating lastplayed playcount filename asin stereo bytes mtime codec frames framesize vbr appleid recorddate country mip_puid originalartist countrycode artist_start artist_end encoded_by songkey artkey albkey albumid songid artistid path user ipod ipod_location ipod_trackid ipod_dbid disctitle booklet pregap postgap samplecount gaplessdata);
-
 sub datamethods {
-	return \@DATAMETHODS;
+	my $self = shift;
+	my $new = shift;
+	if ($new) {
+		#TODO Add sanity check here to prevent overwriting default methods.
+		$DataMethods{$new} = 1;
+	}
+	return [ keys %DataMethods ];
 }
 
 =pod
 
-=head2 Data access methods
+=back
+
+=head2 Data Access Methods
 
 These methods are used to access the tag info. Not all methods are supported by all plugins. In fact, no single plugin supports all methods (yet). Each of these is an accessort function. If you pass it a value, it will set the variable. It always returns the value of the variable. It can return undef.
 
@@ -597,7 +642,73 @@ sub _accessor {
     return $self->{ uc($attr) };
 }
 
+sub _timeaccessor {
+	my $self = shift;
+    my $attr    = shift;
+    my $value   = shift;
+	my $default = shift;
+
+	if ( defined $value ) {
+		if ($value =~ /^(\d\d\d\d)[ \-]?(\d\d)?[ \-]?(\d\d)?[ \-]?(\d\d)?[ \-:]?(\d\d)?[ \-:]?(\d\d)?/) {
+			$value = sprintf("%04d-%02d-%02d %02d:%02d:%02d", $1, $2 || 1, $3 || 1,  $4 || 12, $5 || 0, $6 || 0);
+			if (($1 == 0) || ($1 eq "0000") || 
+				(($1 == 1900) && ($2 == 0) && ($3 == 0)) ||
+				(($1 == 1900) && ($2 == 1) && ($3 == 1))) {
+				$self->status("Invalid date set for ${attr}: ${value}");
+				$value = undef;
+			}
+		}
+		else {
+			$self->status("Invalid date set for ${attr}: ${value}");
+			$value = undef;
+		}
+	}
+	$self->_accessor($attr,$value,$default);
+}
+
+sub _epochaccessor {
+    my $self = shift;
+	my $attr = shift;
+	my $value = shift;
+	my $set = undef;
+	return undef unless ($self->options('TimeLocal'));
+    if ( defined($value) ) {
+		my @tm = gmtime($value);
+		$set = sprintf("%04d-%02d-%02d %02d:%02d:%02d", $tm[5]+1900, $tm[4]+1, $tm[3], $tm[2], $tm[1], $tm[0]);
+    }
+	my $v = $self->_timeaccessor($attr,$set);
+	my $ret = undef;
+	if ((defined $v) && ($v =~ /^(\d\d\d\d)[ \-]?(\d\d)?[ \-]?(\d\d)?[ \-]?(\d\d)?[ \-:]?(\d\d)?[ \-:]?(\d\d)?/)) {
+		eval {
+		  $ret = Time::Local::gmtime($6 || 0,$5 || 0,$4 || 12,$3 || 1, $2 || 0, $1);
+	    };
+		warn $@ if $@;
+	}
+	return $ret;
+}
+
+sub _dateaccessor {
+    my $self = shift;
+	my $attr = shift;
+	my $value = shift;
+	my $set = undef;
+	return undef unless ($self->options('TimeLocal'));
+    if ( defined($value) ) {
+		$set = $value;
+    }
+	my $v = $self->_timeaccessor($attr,$set);
+	my $ret = undef;
+	if ((defined $v) && ($v =~ /^(\d\d\d\d)[ \-]?(\d\d)?[ \-]?(\d\d)?[ \-]?(\d\d)?[ \-:]?(\d\d)?[ \-:]?(\d\d)?/)) {
+		return sprintf("%04d-%02d-%02d", $1,$2,$3);
+	}
+	else {
+		return undef;
+	}
+}
+
 =pod
+
+=over 4
 
 =item album
 
@@ -846,16 +957,16 @@ The MusicIP puid for the track.
 
 A hashref that contains the following:
 
-{
-   "MIME type"     => The MIME Type of the picture encoding
-   "Picture Type"  => What the picture is off.  Usually set to 'Cover (front)'
-   "Description"   => A short description of the picture
-   "_Data"	       => The binary data for the picture.
-   "filename"	   => A filename for the picture.  Data overrides "_Data" and will
-   				      be returned as _Data if queried.  Filename is calculated as relative
-					  to the path of the music file as stated in "filename" or root if no
-					  filename for music file available.
-}
+	{
+	   "MIME type"     => The MIME Type of the picture encoding
+	   "Picture Type"  => What the picture is off.  Usually set to 'Cover (front)'
+	   "Description"   => A short description of the picture
+	   "_Data"	       => The binary data for the picture.
+	   "filename"	   => A filename for the picture.  Data overrides "_Data" and will
+						  be returned as _Data if queried.  Filename is calculated as relative
+						  to the path of the music file as stated in "filename" or root if no
+						  filename for music file available.
+	}
 
 
 Note hashref MAY be generated each call.  Do not modify and assume tag will be modified!
@@ -929,8 +1040,7 @@ sub picture_filename {
 =item picture_exists
 
 Returns true if tag has picture data (or filename), false if not.  Convenience method to prevant reading the file. 
-Does check for existense of picture file, however.
-
+Will return false of filename listed for picture does not exist.
 
 =cut
 
@@ -959,13 +1069,92 @@ sub picture_exists {
 }
 
 =pod
+
 =item rating
 
 The rating (value is 0 - 100) for the track.
 
+=item recorddate
+
+The date track was recorded (not release date).  See notes in releasedate for format.
+
+=item recordepoch
+
+The recorddate in seconds since epoch.  See notes in releaseepoch for format.
+
+=item recordtime
+
+The time and date track was recoded.  See notes in releasetime for format.
+
+=cut
+
+sub recorddate {
+	my $self = shift;
+	$self->_dateaccessor("RECORDTIME", @_);
+}
+
+sub recordepoch {
+	my $self = shift;
+	$self->_epochaccessor("RECORDTIME", @_);
+}
+
+sub recordtime {
+	my $self = shift;
+	$self->_timeaccessor("RECORDTIME", @_);
+}
+
+
+=pod
+
+
 =item releasedate
 
-The release date in the form YYYY-MM-DD. Months and days can be left off.
+The release date in the form YYYY-MM-DD.  The day or month values may be left off.  Please keep this in mind if you are parsing this data.
+
+Because of bugs in my own code, I have added 2 sanity checks.  Will not set the time and return undef if either of the following are true:
+
+1) Time is set as 0000-00-00
+2) Time is set as 1900-00-00
+
+All times should be GMT.
+
+=cut
+
+sub releasedate {
+	my $self = shift;
+	$self->_dateaccessor("RELEASETIME", @_);
+}
+
+=pod
+
+=item releaseepoch
+
+The release date of an album in terms "unix time", or seconds since the SYSTEM epoch (usually Midnight, January 1, 1970 GMT). This can be negative or > 32 bits, so please use caution before assuming this value is a valid unix date.  Using this requires the L<Time::Local> module, so install it if you have not.  Returns undef if Time::Local is not installed.  This value will update releasedate and vice versa.  Since this accurate to the second and releasedate only to the day, setting releasedate will always set this to 12:00 PM GMT the same day.  Returns undef if Time::Local is not installed. 
+
+=cut
+
+sub releaseepoch {
+	my $self = shift;
+	$self->_epochaccessor("RELEASETIME", @_);
+}
+
+=pod
+
+=item releasetime
+
+Like releasedate, but adds the time.  Format should be YYYY-MM-DD HH::MM::SS.  Like releasedate, all entries are year
+are optional.
+
+All times should be GMT.
+
+=cut
+
+sub releasetime {
+	my $self = shift;
+	$self->_timeaccessor("RELEASETIME", @_);
+}
+
+=pod
 
 =item secs
 
@@ -1029,13 +1218,14 @@ sub tracknum {
 }
 
 =pod
+
 =item url
 
 A url associated with the track (often the buy link for Amazon).
 
 =item year
 
-The year a track was released.  Defaults to year set in releasedate if not set.
+The year a track was released.  Defaults to year set in releasedate if not set.  Does not set releasetime.
 
 =cut
 
@@ -1052,13 +1242,40 @@ sub year {
         return $self->{YEAR};
     }
     elsif ( $self->releasedate ) {
-        if ( $self->releasedate =~ /^(\d\d\d\d)-?/ ) {
+        if ( $self->releasetime =~ /^(\d\d\d\d)-?/ ) {
             $self->{YEAR} = $1;
             return $1;
         }
     }
     return undef;
 }
+
+=back
+
+=head1 Non Standard Data Access Methods
+
+These methods are not currently used by any standard plugin.  They may be used in the future, or by other plugins (such as a SQL plugin).  Included here to standardize expanstion methods.
+
+=over 4
+
+=item albumid, artistid, songid
+
+These three values can be used by a database plugin. I recommend using the same value as mb_albumid, mb_artistid, and mb_trackid by default when possible.
+
+=item ipod, ipod_dbid, ipod_location, ipod_trackid
+
+Values for an iPod plugin.  (This does not exists yet.  It may someday.  Ok it does.  I may PUBLISH it someday.).
+
+=item pregap, postgap, gaplessdata, samplecount
+
+Used to store gapless data in.
+
+=item user
+
+Used for user data.
+
+
+=cut
 
 sub status {
     my $self = shift;
@@ -1101,8 +1318,7 @@ sub AUTOLOAD {
     my $attr = $AUTOLOAD;
     $attr =~ s/.*:://;
     my $new = shift;
-    my $okmethods = { map { lc($_) => 1 } @DATAMETHODS };
-    if ( $okmethods->{ lc($attr) } ) {
+    if ( $DataMethods{ lc($attr) } ) {
         return $self->_accessor( $attr, $new );
     }
     else {
@@ -1123,9 +1339,13 @@ use vars qw($AUTOLOAD);
 
 =pod
 
+=back
+
 =head1 PLUGINS
 
 All plugins should set @ISA to include Music::Tag::Generic and contain one or more of the following methods:
+
+=over 4
 
 =item new()
 
@@ -1207,8 +1427,8 @@ Inhereted method that can be called to announce a tag change from what is read o
 
 sub tagchange {
     my $self = shift;
-    my $tag  = uc(shift);
-    my $to   = shift || $self->info->{$tag};
+    my $tag  = uc(shift) || "";
+    my $to   = shift || $self->info->{$tag} || "";
     $self->status( $self->info->tenprint( $tag, 'bold blue', 15 ) . '"'.$to.'"' );
     $self->info->changed(1);
 }
@@ -1387,11 +1607,18 @@ method should return default options
 sub default_options { {} }
 
 sub DESTROY {
+	my $self = shift;
+	# Wow.  Took me a while to find this memory leak.
+	if (exists $self->{info}) {
+		delete $self->{info};
+	}
 }
 
 1;
 
 =pod
+
+=back
 
 =head1 BUGS
 
@@ -1413,7 +1640,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed
@@ -1422,4 +1649,4 @@ with Perl.
 
 =cut
 
-1;
+;

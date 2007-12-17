@@ -1,7 +1,7 @@
 package Music::Tag::Option;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2006 Edward Allen III. All rights reserved.
+# Copyright (c) 2006 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -15,27 +15,31 @@ Music::Tag::Option - Plugin module for Music::Tag to set tags via tag optons
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $filename = "/var/lib/music/artist/album/track.flac";
+	my $filename = "/var/lib/music/artist/album/track.flac";
 
-my $info = Music::Tag->new($filename, { quiet => 1 }, "ogg");
+	my $info = Music::Tag->new($filename, { quiet => 1 }, "ogg");
 
-$info->add_plugin(option, { artist => "Sarah Slean" });
+	$info->add_plugin(option, { artist => "Sarah Slean" });
 
-$info->get_info();
-   
-print "Artist is ", $info->artist;
+	$info->get_info();
+	   
+	print "Artist is ", $info->artist;
 
-#Outputs "Artist is Sarah Slean"
+	#Outputs "Artist is Sarah Slean"
 
 =head1 DESCRIPTION
 
 Music::Tag::Option is a plugin to set tags via the plugin option mechanisim.
 
-=over 4
+=head1 REQUIRED VALUES
+
+None.
 
 =head1 SET VALUES
+
+=over 4
 
 =item Any value you would like can be set this way.
 
@@ -58,7 +62,7 @@ sub set_tag {
 
 sub get_tag { set_tag(@_); }
 
-=pod
+=back
 
 =head1 OPTIONS
 
@@ -66,7 +70,7 @@ Any tag accepted by L<Music::Tag>.
 
 =head1 BUGS
 
-No known additional bugs provided by this Module
+No known additional bugs provided by this Module.
 
 =head1 SEE ALSO
 
@@ -79,7 +83,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

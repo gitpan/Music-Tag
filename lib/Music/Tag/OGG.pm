@@ -1,7 +1,7 @@
 package Music::Tag::OGG;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2006 Edward Allen III. All rights reserved.
+# Copyright (c) 2006 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,25 +16,31 @@ Music::Tag::Ogg - Plugin module for Music::Tag to get information from ogg-vorbi
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $filename = "/var/lib/music/artist/album/track.ogg";
+	my $filename = "/var/lib/music/artist/album/track.ogg";
 
-my $info = Music::Tag->new($filename, { quiet => 1 }, "ogg");
+	my $info = Music::Tag->new($filename, { quiet => 1 }, "ogg");
 
-$info->get_info();
+	$info->get_info();
    
 print "Artist is ", $info->artist;
 
 =head1 DESCRIPTION
 
-Music::Tag::OGG is used to read ogg-vorbis header information. It uses Music::Tag::OGG. 
+Music::Tag::OGG is used to read ogg-vorbis header information. It uses Ogg::Vorbis::Header::PurePerl.  I have gone back and forth with using this
+and Ogg::Vorbis::Header.  Finally I have settled on Ogg::Vorbis::Header::PurePerl, because the autoload for Ogg::Vorbis::Header was a pain to work with.
 
-No values are required (except filename, which is usually provided on object creation). You normally read information from Music:Tag::OGG first.
+To write Ogg::Vorbis headers I use the program vorbiscomment.  It looks for this in the path, or in the option variable "vorbiscomment."  This tool
+is available from L<http://www.xiph.org/> as part of the vorbis-tools distribution.
 
-=over 4
+=head1 REQUIRED VALUES
+
+No values are required (except filename, which is usually provided on object creation).
 
 =head1 SET VALUES
+
+=over 4
 
 =item title, track, totaltracks, artist, album, comment, releasedate, genre, disc, label
 
@@ -51,16 +57,42 @@ Uses MusicBrainz recommended tags for these.
 
 =cut
 use strict;
-use Ogg::Vorbis::Header;
+use Ogg::Vorbis::Header::PurePerl;
 
-#use Image::Magick;
+our %tagmap = (
+	TITLE	=> 'title',
+	TRACKNUMBER => 'track',
+	TRACKTOTAL => 'totaltracks',
+	ARTIST => 'artist',
+	ALBUM => 'album',
+	COMMENT => 'comment',
+	DATE => 'releasedate',
+	GENRE => 'genre',
+	DISC => 'disc',
+	LABEL => 'label',
+	ASIN => 'asin',
+    MUSICBRAINZ_ARTISTID => 'mb_artistid',
+    MUSICBRAINZ_ALBUMID => 'mb_albumid',
+    MUSICBRAINZ_TRACKID => 'mb_trackid',
+    MUSICBRAINZ_SORTNAME => 'sortname',
+    RELEASECOUNTRY => 'countrycode',
+    MUSICIP_PUID => 'mip_puid',
+    MUSICBRAINZ_ALBUMARTIST => 'albumartist'
+);
+
+sub default_options {
+	{ vorbiscomment => "vorbiscomment" }
+}
+
 our @ISA = qw(Music::Tag::Generic);
 
 sub ogg {
 	my $self = shift;
 	unless ((exists $self->{_OGG}) && (ref $self->{_OGG})) {
 		if ($self->info->filename) {
-			$self->{_OGG} = Ogg::Vorbis::Header->new($self->info->filename);
+			$self->{_OGG} = Ogg::Vorbis::Header::PurePerl->new($self->info->filename);
+			$self->{_OGG}->load();
+
 		}
 		else {
 			return undef;
@@ -69,51 +101,25 @@ sub ogg {
 	return $self->{_OGG};
 }
 
-sub oggtag {
-	my $self = shift;
-	my $tag = lc(shift);
-	my $new = shift;
-	my %comments = map { $_ => 1 } ( $self->ogg->comment_tags() );
-	if ($new) {
-	    if($comments{$tag}) {
-			$self->ogg->edit_comment($tag => $new);
-		}
-		else {
-			$self->ogg->add_comments($tag => $new);
-		}
-	}
-	if (exists $comments{$tag}) {
-		return $self->ogg->comment($tag);
-	}
-	else {
-		return undef;
-	}
-}
-
 sub get_tag {
     my $self     = shift;
-    if ( ( $self->ogg ) && ( $self->ogg->load ) ) {
-        $self->oggtag('TITLE') && $self->info->title( $self->oggtag('TITLE') );
-        $self->oggtag('TRACKNUMBER') && $self->info->track( $self->oggtag('TRACKNUMBER') );
-        $self->oggtag('TRACKTOTAL') && $self->info->totaltracks( $self->oggtag('TRACKTOTAL') );
-        $self->oggtag('ARTIST') && $self->info->artist( $self->oggtag('ARTIST') );
-        $self->oggtag('ALBUM') && $self->info->album( $self->oggtag('ALBUM') );
-        $self->oggtag('COMMENT') && $self->info->comment( $self->oggtag('COMMENT') );
-        $self->oggtag('RELEASEDATE') && $self->info->releasedate( $self->oggtag('DATE') );
-        $self->oggtag('GENRE') &&  $self->info->genre( $self->oggtag('GENRE') );
-        $self->oggtag('DISC') && $self->info->disc( $self->oggtag('DISC') );
-        $self->oggtag('LABEL') && $self->info->label( $self->oggtag('LABEL') );
-        $self->oggtag('ASIN') && $self->info->asin( $self->oggtag('ASIN') );
-        $self->oggtag('MUSICBRAINZ_ARTISTID') && $self->info->mb_artistid( $self->oggtag('MUSICBRAINZ_ARTISTID') );
-        $self->oggtag('MUSICBRAINZ_ALBUMID') && $self->info->mb_albumid( $self->oggtag('MUSICBRAINZ_ALBUMID') );
-        $self->oggtag('MUSICBRAINZ_TRACKID') && $self->info->mb_trackid( $self->oggtag('MUSICBRAINZ_TRACKID') );
-        $self->oggtag('MUSICBRAINZ_SORTNAME') && $self->info->sortname( $self->oggtag('MUSICBRAINZ_SORTNAME') ); 
-        $self->oggtag('RELEASECOUNTRY') && $self->info->countrycode( $self->oggtag('RELEASECOUNTRY') ); 
-        $self->oggtag('MUSICIP_PUID') && $self->info->mip_puid( $self->oggtag('MUSICIP_PUID') ); 
-        $self->oggtag('MUSICBRAINZ_ALBUMARTIST') && $self->info->albumartist( $self->oggtag('MUSICBRAINZ_ALBUMARTIST') ); 
+    if ( $self->ogg ) {
+		foreach ($self->ogg->comment_tags) {
+			my $comment = uc($_);
+			if (exists $tagmap{$comment}) {
+				my $method = $tagmap{$comment};
+				$self->info->$method($self->ogg->comment($comment));
+			}
+			else {
+				$self->status("Unknown comment: $comment");
+			}
+		}
         $self->info->secs( $self->ogg->info->{"length"});
         $self->info->bitrate( $self->ogg->info->{"bitrate_nominal"});
         $self->info->frequency( $self->ogg->info->{"rate"});
+	}
+	else {
+		print STDERR "No ogg object created\n";
 	}
     return $self;
 }
@@ -121,28 +127,16 @@ sub get_tag {
 
 sub set_tag {
     my $self = shift;
-    return $self;
-    if ( $self->ogg ) {
-        $self->oggtag('TITLE', $self->info->title);
-        $self->oggtag('TRACKNUMBER', $self->info->tracknum);
-        $self->oggtag('TRACKTOTAL', $self->info->totaltracks);
-        $self->oggtag('ARTIST', $self->info->artist);
-        $self->oggtag('ALBUM', $self->info->album);
-        $self->oggtag('COMMENT', $self->info->comment);
-        $self->oggtag('DATE', $self->info->releasedate);
-        $self->oggtag('GENRE', $self->info->genre);
-        $self->oggtag('DISC', $self->info->disc);
-        $self->oggtag('LABEL', $self->info->label);
-        $self->oggtag('ASIN', $self->info->asin);
-        $self->oggtag('MUSICBRAINZ_ARTISTID', $self->info->mb_artistid( $self->oggtag));
-        $self->oggtag('MUSICBRAINZ_ALBUMID', $self->info->mb_albumid( $self->oggtag));
-        $self->oggtag('MUSICBRAINZ_TRACKID', $self->info->mb_trackid( $self->oggtag));
-        $self->oggtag('MUSICBRAINZ_SORTNAME', $self->info->sortname( $self->oggtag)); 
-        $self->oggtag('RELEASECOUNTRY', $self->info->countrycode( $self->oggtag)); 
-        $self->oggtag('MUSICIP_PUID', $self->info->mip_puid( $self->oggtag)); 
-        $self->oggtag('MUSICBRAINZ_ALBUMARTIST', $self->info->albumartist( $self->oggtag)); 
-        $self->ogg->write_vorbis();
-    }
+	unless (open(COMMENT, "|-", $self->options->{vorbiscomment} ." -w ". "\"". $self->info->filename . "\"")) {
+		$self->status("Failed to open ", $self->options->{vorbiscomment}, ".  Not writing tag.\n");
+		return undef;
+	}
+	while (my ($t, $m) = each %tagmap) {
+		if (defined $self->info->$m) {
+			print COMMENT $t, "=", $self->info->$m, "\n";
+		}
+	}
+	close (COMMENT);
     return $self;
 }
 
@@ -153,11 +147,17 @@ sub close {
 
 1;
 
-=pod
+=back
 
 =head1 OPTIONS
 
-None at the momment.
+=over 4
+
+=item vorbiscomment
+
+The full path to the vorbiscomment program.  Defaults to just "vorbiscomment", which assumes that vorbiscomment is in your path.
+
+=back
 
 =head1 BUGS
 
@@ -179,7 +179,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

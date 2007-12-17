@@ -7,9 +7,6 @@ use Term::ANSIColor;
 use Data::Dumper;
 use Config::Options;
 use Pod::Usage;
-eval {
-use Music::Tag::OGG;  # Workaround to get INLINE code loaded right in Ogg::Vorbis::Header
-};
 
 our $options = Config::Options->new();
 our $BASENAME = "musictag";
@@ -743,9 +740,11 @@ Setting any of these will set the equivalent tag manually.
 
 =back
 
-=head1  CONFIGURATION FILE
+=back
 
-TODO: Write details about this!
+=head1 CONFIGURATION FILE
+
+Configuration file is located at ~/.musictag/default.conf. See sample/default.conf for details.
 
 =head1 SEE ALSO
 
@@ -758,7 +757,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

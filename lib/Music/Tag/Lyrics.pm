@@ -1,7 +1,7 @@
 package Music::Tag::Lyrics;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,25 +16,26 @@ Music::Tag::Lyrics - Screen Scraping plugin for downloading lyrics from the web.
 
 =head1 SYNOPSIS
 
-use Music::Lyrics
+	use Music::Lyrics
 
-my $info = Music::Tag->new($filename, { quiet => 1 });
-$info->add_plugin("Lyrics");
-$info->get_info();
+	my $info = Music::Tag->new($filename, { quiet => 1 });
+	$info->add_plugin("Lyrics");
+	$info->get_info();
    
-print "Lyrics are ", $info->lyrics;
+	print "Lyrics are ", $info->lyrics;
 
 =head1 DESCRIPTION
 
 Music::Tag::Lyrics is a screen scraper which supports a few lyrics sites to gather lyrics from.  Please note that lyrics
-are copyright'd material and downloading them from these sites should only be done for personal use, and never if the 
-artist has expressed his/her/their desire to not publize their lyrics.
+are copyright'd material and downloading them from these sites should only be done for personal use, and never if the artist has expressed his/her/their desire to not publize their lyrics.
+
+=head1 REQUIRED VALUES
 
 Artist, Album, and Title are required to be set before using this plugin.
 
-=over 4
-
 =head1 SET VALUES
+
+=over 4
 
 =item lyrics
 
@@ -76,7 +77,11 @@ sub get_tag {
 
 =pod
 
+=back
+
 =head1 LYRICS SOURCES
+
+=over 4
 
 =item filename
 
@@ -1259,11 +1264,17 @@ sub AUTOLOAD {
 
 =pod
 
+=back
+
 =head1 OPTIONS
+
+=over 4
 
 =item lyrics_path
 
 Path to folder containing lyrics text files.
+
+=back
 
 =head1 BUGS
 
@@ -1281,7 +1292,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

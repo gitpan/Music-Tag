@@ -20,10 +20,12 @@ WriteMakefile( NAME         => "Music::Tag",
                               'MP4::Info'               => 1.12,
                               'Net::Amazon'             => 0.43,
                               'Time::HiRes'             => 1.9707,
-							  'Ogg::Vorbis::Header'		=> 0.03,
+							  'Ogg::Vorbis::Header::PurePerl'		=> 0.07,
                               'URI::Escape'             => 3.28,
                               'URI::WithBase'           => 2.19,
                               'WebService::MusicBrainz' => 0.07,
+							  'Test::More'				=> 0,
+							  'File::Copy'				=> 0,
                             },
              );
 

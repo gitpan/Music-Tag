@@ -1,8 +1,8 @@
 package Music::Tag::Amazon;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 use Data::Dumper;
 
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -17,12 +17,12 @@ Music::Tag::Amazon - Plugin module for Music::Tag to get information from Amazon
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $info = Music::Tag->new($filename);
+	my $info = Music::Tag->new($filename);
    
-my $plugin = $info->add_plugin("Amazon");
-$plugin->get_tag;
+	my $plugin = $info->add_plugin("Amazon");
+	$plugin->get_tag;
 
 print "Record Label is ", $info->label();
 
@@ -30,15 +30,17 @@ print "Record Label is ", $info->label();
 
 Music::Tag::Amazon is normally created in Music::Tag. This plugin gathers additional information about a track from amazon, and updates the tag object.
 
+=head1 REQUIRED VALUES
 
 =over 4
 
-=head1 REQUIRED VALUES
-
-
 =item artist
 
+=back
+
 =head1 USED VALUES
+
+=over 4
 
 =item asin
 
@@ -64,7 +66,11 @@ title is used only if track is not true, or if trust_title option is set.
 
 tracknum is used only if title is not true, or if trust_track option is set.
 
+=back
+
 =head1 SET VALUES
+
+=over 4
 
 =item album
 
@@ -112,9 +118,14 @@ sub default_options {
 }
 
 =pod
+
+=back
+
 =head1 OPTIONS
 
 Music::Tag::Amazon accepts the following options:
+
+=over 4
 
 =item  quiet
 
@@ -164,8 +175,11 @@ Minimum number of points an album must have to win election. Default 10.
 
 Locale code for store to use.  Valid are ca, de, fr, jp, uk or us as of now.  Maybe more...
 
+=back
 
 =head1 METHODS
+
+=over 4
 
 =item get_tag
 
@@ -197,13 +211,13 @@ sub get_tag {
         my $discnum = $self->info->disc || 1;
         if ( ( $self->options->{trust_title} ) or ( not $self->info->track ) ) {
             foreach my $tr ( values %{ $self->_tracks_by_name($p) } ) {
-                if ( $self->simple_compare( $self->info->title, $tr->{content}, ".90" ) ) {
-                    unless ( $self->info->track eq $tr->{Number} ) {
+                if (($self->info->title) && ( $self->simple_compare( $self->info->title, $tr->{content}, ".90" ) )) {
+                    unless (($self->info->track) && ( $self->info->track == $tr->{Number} )) {
                         $self->info->track( $tr->{Number} );
                         $self->tagchange("TRACK");
                     }
                     $tracknum = $tr->{Number};
-                    unless ( $self->info->disc eq $tr->{Disc} ) {
+                    unless (($self->info->disc) && ( $self->info->disc eq $tr->{Disc} )) {
                         $self->info->disc( $tr->{Disc} );
                         $self->tagchange("DISC");
                     }
@@ -223,12 +237,12 @@ sub get_tag {
             }
         }
             my $totaltracks = scalar @{ $discs->[ $discnum - 1 ] };
-            unless ( ($totaltracks) && ( $totaltracks == $self->info->totaltracks() ) ) {
+            unless ( ($self->info->totaltracks) && ($totaltracks) && ( $totaltracks == $self->info->totaltracks() ) ) {
                 $self->info->totaltracks($totaltracks);
                 $self->tagchange("TOTALTRACKS");
             }
             my $totaldiscs = scalar @{$discs};
-            unless ( ($totaldiscs) && ( $totaldiscs == $self->info->totaldiscs() ) ) {
+            unless ( ($self->info->totaldiscs) &&  ($totaldiscs) && ( $totaldiscs == $self->info->totaldiscs() ) ) {
                 $self->info->totaldiscs($totaldiscs);
                 $self->tagchange("TOTALDISCS");
             }
@@ -338,6 +352,8 @@ sub amazon_ua {
 
 =pod
 
+=back
+
 =head1 METHEDOLOGY
 
 If the asin value is true in the tag object, then the lookup is done with this value. Otherwise, it performs a search for all albums by artist, and then waits each album to see which is the most likely. It assigns point using the following values:
@@ -394,16 +410,16 @@ sub _album_lookup {
              && ( not $self->options->{ignore_asin} ) ) {
             $score += 64;
         }
-        if ( $p->{album} eq $self->info->album ) {
+        if (($self->info->album) && ( $p->{album} eq $self->info->album )) {
             $score += 32;
         }
-        elsif ( $self->simple_compare( $p->{album}, $self->info->album, ".80" ) ) {
+        elsif (($self->info->album) && ( $self->simple_compare( $p->{album}, $self->info->album, ".80" ) )) {
             $score += 16;
         }
-        if ( scalar @{ $p->{tracks} } == $self->info->totaltracks ) {
+        if  ((defined $self->info->totaltracks) && ( scalar @{ $p->{tracks} } == $self->info->totaltracks )) {
             $score += 4;
         }
-        if ( $p->{year} == $self->info->year ) {
+        if ((defined $self->info->year) && ( $p->{year} == $self->info->year )) {
             $score += 2;
         }
         if ( $p->{year} < $curmatch->{year} ) {
@@ -412,14 +428,14 @@ sub _album_lookup {
         my $m = 0;
         my $t = 0;
         foreach ( @{ $p->{tracks} } ) {
-            if ( $self->simple_compare( $_, $self->info->title, ".90" ) ) {
+            if (($self->info->title) && ( $self->simple_compare( $_, $self->info->title, ".90" ) )) {
                 $m++;
                 $t = $m;
             }
         }
         if ($m) {
             $score += 8;
-            if ( $t == $self->info->track ) {
+            if (($self->info->track) && ( $t == $self->info->track )) {
                 $score += 2;
             }
         }
@@ -561,7 +577,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

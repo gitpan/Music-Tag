@@ -1,7 +1,7 @@
 package Music::Tag::File;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,28 +16,27 @@ Music::Tag::File - Plugin module for Music::Tag to get information from filename
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $filename = "/var/lib/music/artist/album/track.mp3";
+	my $filename = "/var/lib/music/artist/album/track.mp3";
 
-my $info = Music::Tag->new($filename, { quiet => 1 });
+	my $info = Music::Tag->new($filename, { quiet => 1 });
 
-$info->add_plugin("File");
-$info->get_info();
-   
-# Following prints "artist"
-print "Artist is ", $info->artist;
-
+	$info->add_plugin("File");
+	$info->get_info();
+	   
+	# Following prints "artist"
+	print "Artist is ", $info->artist;
 
 =head1 DESCRIPTION
 
 Music::Tag::File is used to guess information about a music file from its filename, directory name, or contents of the directory it resides in.
 
-No values are required (except filename, which is usually provided on object creation). 
-
 This plugin will not overwrite values found by other plugins.
 
-=over 4
+=head1 REQUIRED VALUES
+
+No values are required (except filename, which is usually provided on object creation). 
 
 =head1 SET VALUES
 
@@ -48,6 +47,8 @@ use File::Spec;
 
 #use Image::Magick;
 our @ISA = qw(Music::Tag::Generic);
+
+=over 4
 
 =item album
 
@@ -79,7 +80,7 @@ Looks for file of same name as filename with .txt extension.
 
 =item booklet
 
-Looks for any pdf file
+Looks for any pdf file.
 
 =cut
 
@@ -307,9 +308,11 @@ sub set_tag {
     return $self;
 }
 
-=pod
+=back
 
 =head1 OPTIONS
+
+=over 4
 
 =item lyricsoverwrite
 
@@ -319,7 +322,7 @@ If true will overwrite lyrics with values found by plugin.
 
 If true will overwrite picture with values found by plugin.
 
-=pod
+=back
 
 =head1 BUGS
 
@@ -336,7 +339,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed

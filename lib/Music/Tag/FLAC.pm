@@ -1,7 +1,7 @@
 package Music::Tag::FLAC;
-our $VERSION = 0.25;
+our $VERSION = 0.27;
 
-# Copyright (c) 2007 Edward Allen III. All rights reserved.
+# Copyright (c) 2007 Edward Allen III. Some rights reserved.
 #
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the Artistic License, distributed
@@ -16,23 +16,23 @@ Music::Tag::Flac - Plugin module for Music::Tag to get information from flac hea
 
 =head1 SYNOPSIS
 
-use Music::Tag
+	use Music::Tag
 
-my $filename = "/var/lib/music/artist/album/track.flac";
+	my $filename = "/var/lib/music/artist/album/track.flac";
 
-my $info = Music::Tag->new($filename, { quiet => 1 }, "FLAC");
+	my $info = Music::Tag->new($filename, { quiet => 1 }, "FLAC");
 
-$info->get_info();
-   
-print "Artist is ", $info->artist;
+	$info->get_info();
+	   
+	print "Artist is ", $info->artist;
 
 =head1 DESCRIPTION
 
 Music::Tag::FLAC is used to read flac header information. It uses Audio::FLAC::Header. 
 
-No values are required (except filename, which is usually provided on object creation). You normally read information from Music:Tag::FLAC first.
+=head1 REQUIRED VALUES
 
-=over 4
+No values are required (except filename, which is usually provided on object creation). 
 
 =head1 SET VALUES
 
@@ -55,19 +55,7 @@ sub flac {
 
 }
 
-sub flactag {
-	my $self = shift;
-	my $tag = shift;
-	my $new = shift;
-	if (defined $new) {
-		$self->flac->tags->{$tag} = $new;
-	}
-	if ($self->flac) {
-		return $self->flac->tags($tag);
-	}
-}
-
-=pod
+=over 4
 
 =item title, track, totaltracks, artist, album, comment, releasedate, genre, disc, label
 
@@ -87,28 +75,36 @@ Gathers this info from file.  Please note that secs is fractional.
 
 =cut
 
-
+our %tagmap = (
+	TITLE	=> 'title',
+	TRACKNUMBER => 'track',
+	TRACKTOTAL => 'totaltracks',
+	ARTIST => 'artist',
+	ALBUM => 'album',
+	COMMENT => 'comment',
+	DATE => 'releasedate',
+	GENRE => 'genre',
+	DISC => 'disc',
+	LABEL => 'label',
+	ASIN => 'asin',
+    MUSICBRAINZ_ARTISTID => 'mb_artistid',
+    MUSICBRAINZ_ALBUMID => 'mb_albumid',
+    MUSICBRAINZ_TRACKID => 'mb_trackid',
+    MUSICBRAINZ_SORTNAME => 'sortname',
+    RELEASECOUNTRY => 'countrycode',
+    MUSICIP_PUID => 'mip_puid',
+    MUSICBRAINZ_ALBUMARTIST => 'albumartist'
+);
+ 
 sub get_tag {
     my $self     = shift;
     if ( $self->flac ) {
-        $self->flactag('TITLE') && $self->info->title( $self->flactag('TITLE') );
-        $self->flactag('TRACKNUMBER') && $self->info->track( $self->flactag('TRACKNUMBER') );
-        $self->flactag('TRACKTOTAL') && $self->info->totaltracks( $self->flactag('TRACKTOTAL') );
-        $self->flactag('ARTIST') && $self->info->artist( $self->flactag('ARTIST') );
-        $self->flactag('ALBUM') && $self->info->album( $self->flactag('ALBUM') );
-        $self->flactag('COMMENT') && $self->info->comment( $self->flactag('COMMENT') );
-        $self->flactag('RELEASEDATE') && $self->info->releasedate( $self->flactag('DATE') );
-        $self->flactag('GENRE') &&  $self->info->genre( $self->flactag('GENRE') );
-        $self->flactag('DISC') && $self->info->disc( $self->flactag('DISC') );
-        $self->flactag('LABEL') && $self->info->label( $self->flactag('LABEL') );
-        $self->flactag('ASIN') && $self->info->asin( $self->flactag('ASIN') );
-        $self->flactag('MUSICBRAINZ_ARTISTID') && $self->info->mb_artistid( $self->flactag('MUSICBRAINZ_ARTISTID') );
-        $self->flactag('MUSICBRAINZ_ALBUMID') && $self->info->mb_albumid( $self->flactag('MUSICBRAINZ_ALBUMID') );
-        $self->flactag('MUSICBRAINZ_TRACKID') && $self->info->mb_trackid( $self->flactag('MUSICBRAINZ_TRACKID') );
-        $self->flactag('MUSICBRAINZ_SORTNAME') && $self->info->sortname( $self->flactag('MUSICBRAINZ_SORTNAME') ); 
-        $self->flactag('RELEASECOUNTRY') && $self->info->countrycode( $self->flactag('RELEASECOUNTRY') ); 
-        $self->flactag('MUSICIP_PUID') && $self->info->mip_puid( $self->flactag('MUSICIP_PUID') ); 
-        $self->flactag('MUSICBRAINZ_ALBUMARTIST') && $self->info->albumartist( $self->flactag('MUSICBRAINZ_ALBUMARTIST') ); 
+		while (my ($t, $v) = each %{$self->flac->tags}) {
+			if ((exists $tagmap{$t}) && (defined $v)) {
+				my $method = $tagmap{$t};
+				$self->info->$method($v);
+			}
+		}
         $self->info->secs( $self->flac->{trackTotalLengthSeconds} );
         $self->info->bitrate( $self->flac->{bitRate} );
 
@@ -132,7 +128,6 @@ This is currently read-only.
 					"_Data"	=> $pic->{imageData},
 				});
         }
-        #$self->info->url(		$self->flac->tags('URL')		);
     }
     return $self;
 }
@@ -140,30 +135,22 @@ This is currently read-only.
 sub set_tag {
     my $self = shift;
     if ( $self->flac ) {
-        $self->flactag('TITLE', $self->info->title);
-        $self->flactag('TRACKNUMBER', $self->info->tracknum);
-        $self->flactag('TRACKTOTAL', $self->info->totaltracks);
-        $self->flactag('ARTIST', $self->info->artist);
-        $self->flactag('ALBUM', $self->info->album);
-        $self->flactag('COMMENT', $self->info->comment);
-        $self->flactag('DATE', $self->info->releasedate);
-        $self->flactag('GENRE', $self->info->genre);
-        $self->flactag('DISC', $self->info->disc);
-        $self->flactag('LABEL', $self->info->label);
-        $self->flactag('ASIN', $self->info->asin);
-        $self->flactag('MUSICBRAINZ_ARTISTID', $self->info->mb_artistid( $self->flactag));
-        $self->flactag('MUSICBRAINZ_ALBUMID', $self->info->mb_albumid( $self->flactag));
-        $self->flactag('MUSICBRAINZ_TRACKID', $self->info->mb_trackid( $self->flactag));
-        $self->flactag('MUSICBRAINZ_SORTNAME', $self->info->sortname( $self->flactag)); 
-        $self->flactag('RELEASECOUNTRY', $self->info->countrycode( $self->flactag)); 
-        $self->flactag('MUSICIP_PUID', $self->info->mip_puid( $self->flactag)); 
-        $self->flactag('MUSICBRAINZ_ALBUMARTIST', $self->info->albumartist( $self->flactag)); 
+		while (my ($t, $v) = each %tagmap) {
+			if (defined $self->info->$v) {
+				$self->flac->tags->{$t} = $self->info->$v;
+			}
+		}
         $self->flac->write();
     }
     return $self;
 }
 
-=pod
+sub close {
+	my $self = shift;
+	delete $self->{_Flac};
+}
+
+=back
 
 =head1 OPTIONS
 
@@ -189,7 +176,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007 Edward Allen III. All rights reserved.
+Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Artistic License, distributed
