@@ -45,7 +45,6 @@ None.
 
 =cut
 
-
 use strict;
 our @ISA = qw(Music::Tag::Generic);
 
@@ -54,8 +53,9 @@ sub set_tag {
     my $okmethods = { map { lc($_) => 1 } @{ $self->info->datamethods } };
     while ( my ( $k, $v ) = each %{ $self->options } ) {
         if ( ( defined $v ) and ( $okmethods->{ lc($k) } ) ) {
-            $self->info->{ uc($k) } = $v;
-            $self->tagchange( uc($k) );
+            my $method = uc($k);
+            $self->info->$method($v);
+            $self->tagchange($method);
         }
     }
 }

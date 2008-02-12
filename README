@@ -1,22 +1,23 @@
-Music-Tag version 0.26
+Music::Tag version 0.28
 ============================
 
-Extendable module for working with Music Tags. Is powered by various
-plugins that collect data about a song based on whatever information
+Extendable module for working with Music Tags. Music::Tag Is powered by 
+various plugins that collect data about a song based on whatever information
 has already been discovered.  
 
-This base package comes with the following plugins:
+Note:  As of version 0.28, Music-Tag is distributed as seperate packages.
 
-MP3 - Info from MP3 Header. Uses MP3::Info 
-M4A - Info from M4A or M4P Header. Uses M4P::Info and Audio::M4P::QuickTime
-FLAC - Info from FLAC Header. Uses Audio::FLAC::Header
-OGG - Info from OGG Header. Uses Ogg::Vorbis::Header::PurePerl
-File - Info based on filename
-MusicBrainz - Info from MusicBrainz site. Uses WebService::MusicBrainz
-Amazon - Info from Amazon site. Uses Net::Amazon
-Lyrics - Quick and dirty lyric search. 
+The following plugins are available:
 
-Other modules are easy to write, and in fact I have writen a few.
+Music::Tag::MP3 - Info from MP3 Header. Uses MP3::Info 
+Music::Tag::M4A - Info from M4A or M4P Header. Uses M4P::Info and Audio::M4P::QuickTime
+Music::Tag::FLAC - Info from FLAC Header. Uses Audio::FLAC::Header
+Music::Tag::OGG - Info from OGG Header. Uses Ogg::Vorbis::Header::PurePerl
+Music::Tag::File - Info based on filename
+Music::Tag::MusicBrainz - Info from MusicBrainz site. Uses WebService::MusicBrainz
+Music::Tag::Amazon - Info from Amazon site. Uses Net::Amazon
+Music::Tag::Lyrics - Quick and dirty lyric search. 
+Music::Tag::LyricsFetcher - Module for fetching lyrics using Lyric::Fetcher (will replace M:T:L)
 
 INSTALLATION
 
@@ -27,48 +28,37 @@ To install this module type the following:
    make test
    make install
 
-!!!!!!  IMPORTANT: If you have installed older versions (older than .25) 
-PLEASE delete the following scripts from your bin folder: autotag safetag 
-quicktag musicsort musicinfo.  If you used any of these scripts, create a 
-symbolic link to musictag for each  !!!!!!
+IMPORTANT NOTE
 
-QUICK INSTALL OF DEPENDENCIES
+If you have installed older versions (older than .25) PLEASE delete the 
+following scripts from your bin folder:
+   autotag 
+   safetag 
+   quicktag 
+   musicsort 
+   musicinfo.  
+If you used any of these scripts, create a symbolic link to musictag for each.
 
-This module builds on the work of others.  It has a lot of dependencies.
-I encourage you to install this automagically with the CPAN module.  To
-do this, run the following command:
+QUICK INSTALL OF ALL PACKAGES
+
+A bundle is available to quickly install Music::Tag with all plugins. To
+install it use:
 
    perl -MCPAN -eshell
 
 At the cpan shell prompt type:
 
-   install Text::LevenshteinXS
-   install Text::Unaccent
-   install Term::ANSIColor
-   install Music::Tag
+   install Bundle::Music::Tag
 
 DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-   Audio::FLAC::Header
-   Cache::FileCache
    Encode
    File::Spec
-   HTML::Entities
-   LWP
-   MP3::Tag
-   MP4::Info
-   Net::Amazon
-   Ogg::Vorbis::Header::PurePerl
-   URI::Escape
-   URI::WithBase
-   WebService::MusicBrainz
    Locale::Country
-
-The version info in the Makefile is based on what I use.  You can get 
-away with older versions in many cases. Do not install an older version
-of MP3::Tag.
+   Digest::SHA1
+   Config::Options
 
 I strongly recommend the following to improve web searches:
 
@@ -81,40 +71,13 @@ The following just makes things pretty:
 
    Term::ANSIColor
 
-NOTE ON ID3v2.4 TAGS
+EXECUTABLE SCRIPT
 
-There seems to be a bug with MP3::Tag::ID3v2 0.9709. To use ID3v2.4 tags,
-download MP3::Tag from CPAN and apply the following patch:
-
-   patches/MP3-Tag-0.9709.ID3v2.4.patch
-
-To do this change directory to the MP3::Tag download directory and type
-
-   patch -p1 < ../Music-Tag/patches/MP3-Tag-0.9709.ID3v2.4.patch
-
-Then install as normal
-
-   perl Makefile.PL
-   make && make test
-   make install
-
-NOTE ON OGG-VORBIS FILES
-
-I have had trouble with Ogg::Vorbis::Header.  As such, I have stoped using it. 
-I now use OGG::Vorbis::PurePerl. This module is also buggy, and doesn't have
-write support.  To overcome this limitation, for now, I am using the
-vorbiscomment program that is part of the vorbis-tools package from xiph.org.
-
-I am planning on adding write support to Ogg::Vorbis::PurePerl someday.
-
-USE
+musictag is a script which allows quick tagging of MP3 files.  To learn more, use:
 
    musictag --help 
    musictag --longhelp
 
-TEST FILES
-
-Are based on the sample file for Audio::M4P.  For testing only.
 
 COPYRIGHT AND LICENCE
 
