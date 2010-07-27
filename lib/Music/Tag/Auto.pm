@@ -1,47 +1,15 @@
 package Music::Tag::Auto;
-our $VERSION = 0.01;
-
-# Copyright (c) 2006 Edward Allen III. Some rights reserved.
-#
-## This program is free software; you can redistribute it and/or
-## modify it under the terms of the Artistic License, distributed
-## with Perl.
-
-=pod
-
-=head1 NAME
-
-Music::Tag::Auto - Plugin module for Music::Tag to load other plugins by file extension.
-
-=head1 SYNOPSIS
-
-	use Music::Tag
-
-	my $filename = "/var/lib/music/artist/album/track.flac";
-
-	my $info = Music::Tag->new($filename, { quiet => 1 }, "Auto");
-
-	$info->get_info();
-	print "Artist is ", $info->artist;
-
-
-=head1 DESCRIPTION
-
-Music::Tag::Auto is loaded automatically in Music::Tag .3 and newer to load other plugins.
-
-=head1 REQUIRED VALUES
-
-None.
-
-=head1 SET VALUES
-
-None.
-
-=cut
-
 use strict;
 use warnings;
-our @ISA = qw(Music::Tag::Generic);
+our $VERSION = .40_01;
+use base qw(Music::Tag::Generic);
+
+# Copyright (c) 2006 Edward Allen III. Some rights reserved.
+
+#
+# You may distribute under the terms of either the GNU General Public
+# License or the Artistic License, as specified in the README file.
+#
 
 sub default_options {
 	{
@@ -78,6 +46,10 @@ sub new {
 			$plugin = "Music::Tag::" . $plugin;
 		}
 		$self->status(1, "Auto loading plugin: $plugin");
+	my $type = lc($plugin);
+	$type =~ s/^.*:://;
+        $self->status(2, "Adding filetype: $plugin");
+        $self->info->filetype($type);
 		if($self->info->_has_module($plugin)) {
 			return $plugin->new( $self->info, $self->options );
 		}
@@ -87,6 +59,38 @@ sub new {
         return undef;
     }
 }
+
+1;
+__END__
+=pod
+
+=head1 NAME
+
+Music::Tag::Auto - Plugin module for Music::Tag to load other plugins by file extension.
+
+=head1 SYNOPSIS
+
+	use Music::Tag
+
+	my $filename = "/var/lib/music/artist/album/track.flac";
+
+	my $info = Music::Tag->new($filename, { quiet => 1 }, "Auto");
+
+	$info->get_info();
+	print "Artist is ", $info->artist;
+
+
+=head1 DESCRIPTION
+
+Music::Tag::Auto is loaded automatically in Music::Tag .3 and newer to load other plugins.
+
+=head1 REQUIRED VALUES
+
+None.
+
+=head1 SET VALUES
+
+None.
 
 =head1 OPTIONS
 
@@ -143,9 +147,29 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 LICENSE
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the Artistic License, distributed
-with Perl.
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either:
+
+    a) the GNU General Public License as published by the Free
+    Software Foundation; either version 1, or (at your option) any
+    later version, or
+
+    b) the "Artistic License" which comes with Perl.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
+the GNU General Public License or the Artistic License for more details.
+
+You should have received a copy of the Artistic License with this
+Kit, in the file named "Artistic".  If not, I'll be glad to provide one.
+
+You should also have received a copy of the GNU General Public License
+along with this program in the file named "Copying". If not, write to the
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA or visit their web page on the Internet at
+http://www.gnu.org/copyleft/gpl.html.
+
 
 =head1 COPYRIGHT
 
@@ -153,6 +177,3 @@ Copyright (c) 2007 Edward Allen III. Some rights reserved.
 
 
 
-=cut
-
-1;
