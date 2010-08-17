@@ -1,9 +1,8 @@
 package Music::Tag::Generic;
-use strict;
-use warnings;
-our $VERSION = .40_01;
+use strict; use warnings; use utf8;
+our $VERSION = '.4101';
 
-# Copyright (c) 2007,2008,2009,2010 Edward Allen III. Some rights reserved.
+# Copyright © 2007,2008,2009,2010 Edward Allen III. Some rights reserved.
 
 #
 # You may distribute under the terms of either the GNU General Public
@@ -60,7 +59,7 @@ sub close {
 sub tagchange {
     my $self = shift;
     my $tag  = lc(shift);
-    my $to   = shift || $self->info->$tag || "";
+    my $to   = shift || $self->info->get_data($tag) || "";
     $self->status( $self->info->_tenprint( $tag, 'bold blue', 15 ) . '"' . $to . '"' );
     return $self->info->changed(1);
 }
@@ -193,7 +192,7 @@ sub wav_out {
         my @sys = ();
         foreach ( @{ $self->options->{wav_out_system} } ) {
             my $a = $_;
-            $a =~ s/\[FILENAME\]/$self->info->filename()/ge;
+            $a =~ s/\[FILENAME\]/$self->info->get_data('filename')/ge;
             push @sys, $a;
         }
         $self->status( 0, "Executing ", join( " ", @sys ) );
@@ -362,7 +361,7 @@ Edward Allen III <ealleniii _at_ cpan _dot_ org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2008 Edward Allen III. Some rights reserved.
+Copyright © 2007,2008 Edward Allen III. Some rights reserved.
 
 =head1 LICENSE
 

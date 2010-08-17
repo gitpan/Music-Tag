@@ -1,10 +1,9 @@
 package Music::Tag::Option;
-use strict;
-use warnings;
-our $VERSION = .40_01;
+use strict; use warnings; use utf8;
+our $VERSION = '.4101';
 use base qw(Music::Tag::Generic);
 
-# Copyright (c) 2006 Edward Allen III. Some rights reserved.
+# Copyright © 2006,2010 Edward Allen III. Some rights reserved.
 
 #
 # You may distribute under the terms of either the GNU General Public
@@ -19,13 +18,13 @@ sub set_tag {
     while ( my ( $k, $v ) = each %{ $self->options } ) {
         if ( ( defined $v ) and ( $okmethods->{ lc($k) } ) ) {
             my $method = lc($k);
-            $self->info->$method($v);
+            $self->info->set_data($method,$v);
             $self->tagchange($method);
         }
     }
 }
 
-sub get_tag { set_tag(@_); }
+sub get_tag { goto &set_tag; }
 
 1;
 __END__
@@ -129,5 +128,5 @@ http://www.gnu.org/copyleft/gpl.html.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2010 Edward Allen III. Some rights reserved.
+Copyright © 2007,2010 Edward Allen III. Some rights reserved.
 

@@ -1,7 +1,9 @@
-package MusicTagTest;
+package Music::Tag::Test;
+use strict; use warnings; use utf8;
+our $VERSION = '.4101';
+
 use base 'Exporter';
 use vars '@EXPORT';
-use strict;
 use Test::More;
 use Digest::SHA1;
 use File::Copy;
@@ -73,7 +75,7 @@ sub random_write_date {
 	return 0 if (! exists $testoptions->{random_write_date});
 	my $c = 0;
 	foreach my $meth (@{$testoptions->{random_write_date}}) {
-		 my $val = int(rand(1_800_000_000));
+		 my $val = int(rand(1_400_000_000)) + 399_999_999;
 		 $values{$meth} = $val;
 		 ok($tag->$meth($val), 'auto write to '. $meth);
 		 $c++;
@@ -210,4 +212,119 @@ sub filetest {
 
 
 1;
+__END__
+
+=pod
+
+=head1 NAME
+
+Music::Tag::Test - Routines to test Music::Tag plugins
+
+=head1 SYNOPSIS
+
+    #!/usr/bin/perl -w
+    use strict;
+    use Test::More tests => 62;
+    use Music::Tag::Test;
+
+    BEGIN { use_ok('Music::Tag') }
+    my $c = filetest("t/elise.mp3", "t/elisetest.mp3", {},{
+        values_in => {
+            artist =>, "Beethoven", 
+            album => "GPL",
+            title 1=> "Elise",
+            sha1 => '39cd05447fa9ab6d6db08f41a78ac8628874c37e',
+        },
+        skip_write_tests => 0,
+        random_write => [ qw(title artist album) ], 
+        random_write_date => [ qw(releaseepoch) ],
+        random_write_num => [ qw(track) ],
+        picture_in => 0,
+        picture_file => 'beethoven.jpg',
+        picture_sha1 => 'b2bf4b2f71bf01e12473dd0ebe295777127589f4',
+        picture_read => 1,
+        count => 60,
+        plugin => 'MP3'
+    });
+
+=head1 DESCRIPTION
+
+Music::Tag::Test provides routines to test Music::Tag plugins
+
+=head1 SUBROUTINES
+
+=over
+
+=item B<filetest()>
+
+Takes a hashref of options to perform multiple test on a file.
+
+=item B<create_tag>
+
+Create a tag for given options.
+
+=item B<read_tag()>
+
+Perform read test
+
+=item B<random_write()>, B<random_write_num()>, B<random_write_date()>
+
+Write random data to tags
+
+=item B<random_read()>, B<random_read_num()>, B<random_read_date()>
+
+Read back data written.
+
+=item B<read_picture>
+
+Read a picture
+
+=item B<write_picture>
+
+Write a picture
+
+=back
+
+=head1 BUGS
+
+Unknown
+
+=head1 SEE ALSO
+
+L<Music::Tag>
+
+=head1 AUTHOR 
+
+Edward Allen III <ealleniii _at_ cpan _dot_ org>
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either:
+
+    a) the GNU General Public License as published by the Free
+    Software Foundation; either version 1, or (at your option) any
+    later version, or
+
+    b) the "Artistic License" which comes with Perl.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
+the GNU General Public License or the Artistic License for more details.
+
+You should have received a copy of the Artistic License with this
+Kit, in the file named "Artistic".  If not, I'll be glad to provide one.
+
+You should also have received a copy of the GNU General Public License
+along with this program in the file named "Copying". If not, write to the
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110-1301, USA or visit their web page on the Internet at
+http://www.gnu.org/copyleft/gpl.html.
+
+
+=head1 COPYRIGHT
+
+Copyright © 2007,2010 Edward Allen III. Some rights reserved.
+
 
